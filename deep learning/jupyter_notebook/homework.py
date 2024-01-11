@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import str
 class Homework(ABC):
     # 检测程序是否正确
     @abstractmethod
@@ -14,20 +13,25 @@ class Homework(ABC):
     def hint(self) -> str:
         pass
 
+    def assert_msg(self, str:str) -> str:
+        return "Result error for input" + str
+
 class Homework_1_1_1(Homework):
     def check(self, func) -> bool:
         try:
-            assert func([1,2,3,4,5]) == [1,2,3,4,5]
-            assert func([1,2,2]) == [1,2]
-            assert func(['12']) == ['12']
-            assert func([]) == []
+            assert func([1,2,3,4,5]) == [1,2,3,4,5], self.assert_msg("[1,2,3,4,5]")
+            assert func([1,2,2]) == [1,2], self.assert_msg("[1,2,2]")
+            assert func(['12']) == ['12'], self.assert_msg("['12']")
+            assert func([]) == [], self.assert_msg("[]")
         except AssertionError as e:
             print(f"Assertion Error: {e}")
             return False
         return True
     
     def show(self) -> str:
-        return "def remove_duplicates(arr:list) -> str:\n\tres = []\n\tres=list(set(arr))\n\treturn res"
+        code_string = 'def remove_duplicates(arr:list) -> str:\n\tres = []\n\tres=list(set(arr))\n\treturn res'
+        print(code_string)
+        return code_string
     
     def hint(self) -> str:
         return "Try using the set() function to eliminate duplicate elements and then convert it back to a list."
