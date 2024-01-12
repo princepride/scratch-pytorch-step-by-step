@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 class Homework(ABC):
     # 检测程序是否正确
     @abstractmethod
-    def check(self, func) -> bool:
+    def check(self, *func) -> bool:
         pass
     # 打印答案
     @abstractmethod
-    def show(self) -> str:
+    def show(self):
         pass
     # 打印提示
     @abstractmethod
@@ -14,7 +14,7 @@ class Homework(ABC):
         pass
 
     def assert_msg(self, str:str) -> str:
-        return "Result error for input" + str
+        return "Result error for input: " + str
 
 class Homework_1_1_1(Homework):
     def check(self, func) -> bool:
@@ -28,14 +28,26 @@ class Homework_1_1_1(Homework):
             return False
         return True
     
-    def show(self) -> str:
+    def show(self):
         code_string = 'def remove_duplicates(arr:list) -> str:\n\tres = []\n\tres=list(set(arr))\n\treturn res'
         print(code_string)
-        return code_string
     
     def hint(self) -> str:
         return "Try using the set() function to eliminate duplicate elements and then convert it back to a list."
 
+class Homework_1_3_1(Homework):
+    def check(self, *func) -> bool:
+        try:
+            assert func[0](2).area() == 12.56, self.assert_msg("Circle(2)")
+            assert func[1](12).area() == 144, self.assert_msg("Square(12)")
+        except AssertionError as e:
+            print(f"Assertion Error: {e}")
+            return False
+        return True
+    def show(self):
+        print('class Circle(Shape):\n\tdef __init__(self, radius):\n\t\tself.radius = radius\n\tdef area(self):\n\t\treturn 3.14 * self.radius ** 2\nclass Square(Shape):\n\tdef __init__(self, side):\n\t\tself.side = side\n\tdef area(self):\n\t\treturn self.side ** 2')
+    def hint(self) -> str:
+        return '圆的面积计算公式是3.14*r^2, 正方形的面积计算公式是side*side'
 class HomeworkFactory:
     @staticmethod
     def get_homework(id: str) -> Homework:
