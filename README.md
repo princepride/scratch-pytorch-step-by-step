@@ -4,4 +4,4 @@
 
 ## scratch-pytorch
 
-pytorch是深度学习领域的最重要的框架，本教程主要分为4个部分。①用基础编程语言实现pytorch语法风格的深度学习框架。②用我们自己的深度学习框架去实现CNN，RNN，transformer这些经典模型。③学习pytorch框架并用来实现一些流行的模型：Blip-2，stable-diffusion，Llama2。④介绍深度学习领域的大杀器transformer这一由huggingface提供的软件包
+pytorch是深度学习领域的最重要的框架，本教程主要分为4个部分。①用基础编程语言实现pytorch语法风格的深度学习框架。②用我们自己的深度学习框架去实现CNN，RNN，ResNet, transformer这些经典模型。③学习pytorch框架并用来实现一些流行的模型：Blip-2，stable-diffusion，Llama2。④介绍深度学习领域的大杀器transformer这一由huggingface提供的软件包
