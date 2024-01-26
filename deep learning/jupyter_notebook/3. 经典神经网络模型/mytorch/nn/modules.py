@@ -162,3 +162,4 @@ class MSELoss(Module):
         for i in range(len(target)):
             loss += (pred[i] - target[i]) ** 2
         return loss/len(target)
+
