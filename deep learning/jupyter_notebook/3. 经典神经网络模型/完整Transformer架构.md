@@ -1898,7 +1898,7 @@ source_mask = target_mask = Variable(torch.zeros(8, 4, 4))
 ed = EncoderDecoder(encoder, decoder, source_embed, target_embed, generator)
 ed_result = ed(source, target, source_mask, target_mask)
 print(ed_result)
-print(ed_result.shape
+print(ed_result.shape)
 ```
 
 * 输出效果:
