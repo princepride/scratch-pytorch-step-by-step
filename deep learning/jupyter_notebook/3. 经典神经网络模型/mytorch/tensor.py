@@ -238,6 +238,37 @@ class Tensor:
         out._backward = _backward
         return out
     
+    def dropout(self, dropout_probability=0.5, is_training=True):
+        """
+        实现Tensor对象的dropout操作。在训练过程中随机丢弃一部分神经元（将它们的激活值设为0），
+        以避免过拟合。使用Inverted Dropout方法，保证激活值的期望不变。
+
+        参数:
+        dropout_probability (float): 丢弃神经元的概率，默认为0.5。
+        is_training (bool): 指示当前是否处于训练模式。只有在训练模式下才进行dropout操作。
+
+        返回:
+        Tensor: 经过dropout操作的Tensor对象。如果不是训练模式，则返回未修改的Tensor对象。
+        """
+        if not is_training or dropout_probability == 0:
+            # 如果不是训练模式或dropout_probability为0，即不丢弃任何元素，直接返回原Tensor
+            return self
+        else:
+            # 在训练模式下，根据1-dropout_probability随机生成dropout掩码
+            keep_prob = 1 - dropout_probability
+            mask = np.random.binomial(1, keep_prob, size=self.data.shape) / keep_prob
+            # 应用dropout掩码
+            dropped_out_data = self.data * mask
+            
+            out = Tensor(dropped_out_data, _prev=(self,), trainable=False, _op='dropout')
+            
+            def _backward():
+                # 反向传播时只对保留下来的元素求导
+                self.grad += out.grad * mask
+            
+            out._backward = _backward
+            return out
+    
     def tanh(self):
         """
         应用双曲正切激活函数。

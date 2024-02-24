@@ -121,6 +121,26 @@ class Tensor:
         out._backward = _backward
         return out
     
+    def dropout(self, dropout_probability=0.5, is_training=True):
+        if not is_training or dropout_probability == 0:
+            # 如果不是训练模式或dropout_probability为0，即不丢弃任何元素，直接返回原Tensor
+            return self
+        else:
+            # 在训练模式下，根据1-dropout_probability随机生成dropout掩码
+            keep_prob = 1 - dropout_probability
+            mask = np.random.binomial(1, keep_prob, size=self.data.shape) / keep_prob
+            # 应用dropout掩码
+            dropped_out_data = self.data * mask
+            
+            out = Tensor(dropped_out_data, _prev=(self,), trainable=False, _op='dropout')
+            
+            def _backward():
+                # 反向传播时只对保留下来的元素求导
+                self.grad += out.grad * mask
+            
+            out._backward = _backward
+            return out
+    
     def tanh(self):
         x = self.data
         t = (math.exp(2*x) - 1)/(math.exp(2*x) + 1)
