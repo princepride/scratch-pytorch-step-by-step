@@ -320,6 +320,15 @@ class Tensor:
 
         return out
     
+    def size(self):
+        """
+        返回Tensor的形状，类似于PyTorch中的size()方法。
+        
+        返回:
+        - 一个表示张量形状的元组。
+        """
+        return self.data.shape
+    
     def gradient_descent_opt(self, learning_rate=0.001, grad_zero=True):
         """
         使用梯度下降算法优化Tensor中的参数。
