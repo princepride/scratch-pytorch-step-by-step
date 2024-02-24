@@ -320,14 +320,20 @@ class Tensor:
 
         return out
     
-    def size(self):
+    def size(self, dim=None):
         """
-        返回Tensor的形状，类似于PyTorch中的size()方法。
+        参数:
+        - dim: 可选，整数，指定想要获取大小的维度。
         
         返回:
-        - 一个表示张量形状的元组。
+        - 如果指定了dim，则为整数；如果没有指定，则为表示张量形状的元组。
         """
-        return self.data.shape
+        if dim is None:
+            return self.data.shape
+        else:
+            if dim < 0 or dim >= len(self.data.shape):
+                raise IndexError("维度超出范围")
+            return self.data.shape[dim]
     
     def gradient_descent_opt(self, learning_rate=0.001, grad_zero=True):
         """
