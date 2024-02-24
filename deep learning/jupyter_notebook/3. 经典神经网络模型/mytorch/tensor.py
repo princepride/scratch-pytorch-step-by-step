@@ -26,6 +26,39 @@ class Tensor:
         self.trainable = trainable
         self._op = _op
         self.label = label
+    
+    @staticmethod
+    def cat(tensors, dim=0):
+        """
+        实现沿指定维度将一系列Tensor对象连接起来的功能。
+
+        参数:
+        tensors (list of Tensor): 要连接的Tensor对象列表。
+        dim (int, optional): 要沿其连接的维度，默认为0。
+
+        返回:
+        Tensor: 连接后的新Tensor对象。
+
+        注意:
+        1. 所有输入Tensor的除了连接维度以外的其他维度大小必须相同。
+        2. 连接操作不会改变输入Tensor的原始数据，而是创建一个包含所有数据的新Tensor。
+        3. 反向传播时，梯度将被正确分配回各个原始Tensor。
+        """
+        assert all(isinstance(t, Tensor) for t in tensors), "所有输入必须是Tensor对象"
+        data = [t.data for t in tensors]
+        concatenated_data = np.concatenate(data, axis=dim)
+        
+        # 创建一个新的Tensor对象作为cat操作的结果
+        out = Tensor(concatenated_data, _prev=tuple(tensors), _op='cat')
+        
+        def _backward():
+            # 分割out.grad并将相应的梯度分配给原始的Tensor对象
+            grad_splits = np.split(out.grad, np.cumsum([t.data.shape[dim] for t in tensors[:-1]]), axis=dim)
+            for t, grad in zip(tensors, grad_splits):
+                t.grad += grad
+        
+        out._backward = _backward
+        return out
 
     @staticmethod
     def from_numpy(ndarray):

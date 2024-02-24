@@ -13,6 +13,24 @@ class Tensor:
         self.label = label
 
     @staticmethod
+    def cat(tensors, dim=0):
+        assert all(isinstance(t, Tensor) for t in tensors), "所有输入必须是Tensor对象"
+        data = [t.data for t in tensors]
+        concatenated_data = np.concatenate(data, axis=dim)
+        
+        # 创建一个新的Tensor对象作为cat操作的结果
+        out = Tensor(concatenated_data, _prev=tuple(tensors), _op='cat')
+        
+        def _backward():
+            # 分割out.grad并将相应的梯度分配给原始的Tensor对象
+            grad_splits = np.split(out.grad, np.cumsum([t.data.shape[dim] for t in tensors[:-1]]), axis=dim)
+            for t, grad in zip(tensors, grad_splits):
+                t.grad += grad
+        
+        out._backward = _backward
+        return out
+    
+    @staticmethod
     def from_numpy(ndarray):
         if not isinstance(ndarray, np.ndarray):
             raise TypeError("Input must be a NumPy array")
