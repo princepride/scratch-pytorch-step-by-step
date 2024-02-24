@@ -10,3 +10,6 @@ def tanh(tensor:Tensor) -> Tensor:
 
 def from_numpy(ndarray: np.ndarray) -> Tensor:
     return Tensor.from_numpy(ndarray)
+
+def zeros(shape):
+    return Tensor.from_numpy(np.zeros(shape, dtype=np.float32))
