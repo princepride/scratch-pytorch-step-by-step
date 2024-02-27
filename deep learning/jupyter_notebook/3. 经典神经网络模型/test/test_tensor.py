@@ -21,6 +21,35 @@ def test_init():
         Tensor({'a':'123','b':'12'})
     assert str(e.value) == "未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化"
 
+def test_eq():
+    # 测试数据相同的情况
+    tensor1 = Tensor(np.array([1, 2, 3]), trainable=True)
+    tensor2 = Tensor(np.array([1, 2, 3]), trainable=True)
+    assert tensor1 == tensor2
+    tensor3 = Tensor(np.array([1, 2, 3]), trainable=False)
+    assert not tensor1 == tensor3
+    tensor4 = Tensor(np.array([4, 5, 6]), trainable=True)
+    assert not tensor1 == tensor4
+    assert not tensor1 == [1, 2, 3]
+
+def test_ne():
+    tensor1 = Tensor(np.array([1, 2, 3]), trainable=True)
+    tensor2 = Tensor(np.array([1, 2, 3]), trainable=False)
+    tensor3 = Tensor(np.array([4, 5, 6]), trainable=True)
+    assert tensor1 != tensor2
+    assert tensor1 != tensor3
+    tensor4 = Tensor(np.array([1, 2, 3]), trainable=True)
+    assert not (tensor1 != tensor4)
+
+def test_hash():
+    tensor1 = Tensor(np.array([1, 2, 3]), trainable=True)
+    tensor2 = Tensor(np.array([1, 2, 3]), trainable=True)
+    tensor3 = Tensor(np.array([1, 2, 3]), trainable=False)
+
+    assert hash(tensor1) != hash(tensor2)
+    assert hash(tensor1) == hash(tensor1)
+    assert hash(tensor1) != hash(tensor3)
+
 def test_from_numpy():
     assert Tensor.from_numpy(np.array(5)) == Tensor(5, trainable=True)
     assert Tensor.from_numpy(np.array(5)) == Tensor(5, trainable=True)
