@@ -146,6 +146,35 @@ class Tensor:
             
         out._backward = _backward
         return out
+    
+    def squeeze(self, axis=None):
+        """
+        移除张量中的单维度。如果指定了轴（axis），则只移除该轴的单维度。
+        
+        参数:
+        axis (int, 可选): 指定要移除的维度。如果未指定，则移除所有长度为1的维度。
+
+        返回:
+        Tensor: 经过压缩维度后的新Tensor对象。
+        """
+        if axis is None:
+            squeezed_data = np.squeeze(self.data)
+        else:
+            squeezed_data = np.squeeze(self.data, axis=axis)
+        out = Tensor(squeezed_data, _prev=(self,), _op='squeeze')
+        
+        def _backward():
+            # 将梯度“扩展”回去，即在被压缩的维度上增加长度为1的维度
+            grad_shape = list(self.data.shape)
+            if axis is not None:
+                grad_shape.insert(axis, 1)
+            else:
+                for ax in range(len(squeezed_data.shape), len(grad_shape)):
+                    grad_shape.insert(ax, 1)
+            self.grad += out.grad.reshape(grad_shape)
+        
+        out._backward = _backward
+        return out
         
     @staticmethod
     def cat(tensors, dim=0):
