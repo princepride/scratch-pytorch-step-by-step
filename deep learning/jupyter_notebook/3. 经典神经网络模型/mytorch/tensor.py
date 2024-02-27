@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from typing import List
 class Tensor:
     """
     Tensor类代表一个多维数组，用于神经网络中的张量运算。
@@ -17,8 +18,18 @@ class Tensor:
         _op (str, 可选): 与Tensor关联的操作符。
         label (str, 可选): Tensor的标签，用于调试和可视化。
         """
-        if not isinstance(data, np.ndarray):
+        if isinstance(data, Tensor):
+            raise TypeError("Tensor被用于初始化的数据类型不能是Tensor类型")
+        if isinstance(data, int):
             data = np.array(data, dtype=np.float32)
+        elif isinstance(data, float):
+            data = np.array(data, dtype=np.float32)
+        elif isinstance(data, List):
+            data = np.array(data, dtype=np.float32)
+        elif isinstance(data, np.ndarray):
+            pass
+        else:
+            raise TypeError("未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化")
         self.data = data
         self.grad = np.zeros_like(data, dtype=np.float32)
         self._backward = lambda: None
@@ -26,6 +37,33 @@ class Tensor:
         self.trainable = trainable
         self._op = _op
         self.label = label
+
+    def __eq__(self, other):
+        """
+        比较当前Tensor和另一个Tensor的数据和训练标志。
+        
+        参数:
+        other (Tensor): 要比较的另一个Tensor对象。
+        
+        返回:
+        bool: 如果数据和训练标志相同，则为True；否则为False。
+        """
+        if not isinstance(other, Tensor):
+            return NotImplemented
+        return (np.array_equal(self.data, other.data) and 
+                self.trainable == other.trainable)
+    
+    def __ne__(self, other):
+        """
+        比较当前Tensor和另一个Tensor是否不相等。
+        
+        参数:
+        other (Tensor): 要比较的另一个Tensor对象。
+        
+        返回:
+        bool: 如果数据或训练标志不相同，则为True；否则为False。
+        """
+        return not self.__eq__(other)
     
     @staticmethod
     def cat(tensors, dim=0):
@@ -61,7 +99,7 @@ class Tensor:
         return out
 
     @staticmethod
-    def from_numpy(ndarray):
+    def from_numpy(ndarray, trainable=True):
         """
         从NumPy数组创建Tensor对象。
         
@@ -71,9 +109,15 @@ class Tensor:
         返回:
         Tensor: 由NumPy数组创建的Tensor对象。
         """
-        if not isinstance(ndarray, np.ndarray):
-            raise TypeError("Input must be a NumPy array")
-        return Tensor(ndarray)
+        if isinstance(ndarray, Tensor):
+            ndarray.trainable = trainable
+            return ndarray
+        if isinstance(ndarray, np.ndarray):
+            return Tensor(ndarray, trainable = trainable)
+        if isinstance(ndarray, List):
+            return Tensor(ndarray, trainable= trainable)
+        raise TypeError("Input must be a NumPy array")
+        
 
     def __add__(self, other):
         """
