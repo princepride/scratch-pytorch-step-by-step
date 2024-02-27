@@ -65,11 +65,29 @@ def test_unsqueeze():
 
     a = Tensor([[1,2,3],[4,5,6]])
     b = a.unsqueeze(1)
-    print(b)
     assert b == Tensor([[[1,2,3]],[[4,5,6]]])
     b.grad = np.array([[[[9,8,7]]],[[[6,5,4]]]])
     b._backward()
     assert (a.grad == np.array([[9,8,7],[6,5,4]])).all()
+
+def test_reshape():
+    assert Tensor([[1,2,3],[4,5,6]]).reshape((6,)) == Tensor([1,2,3,4,5,6])
+    assert Tensor([[1,2,3],[4,5,6]]).reshape((3,2)) == Tensor([[1,2],[3,4],[5,6]])
+    assert Tensor([1,2,3,4,5,6]).reshape((2,1,3)) == Tensor([[[1,2,3]],[[4,5,6]]])
+
+    a = Tensor([[1,2],[3,4]])
+    b = a.reshape((4,))
+    assert b == Tensor([1,2,3,4])
+    b.grad = np.array([5,6,7,8])
+    b._backward()
+    assert (a.grad == np.array([[5,6],[7,8]])).all()
+
+    c = Tensor([[1,2,3],[3,4,5]])
+    d = c.reshape((3,2,1))
+    assert d == Tensor([[[1],[2]],[[3],[3]],[[4],[5]]])
+    d.grad = np.array([[[1],[2]],[[3],[3]],[[4],[5]]])
+    d._backward()
+    assert (c.grad == np.array([[1,2,3],[3,4,5]])).all()
 
 def test_cat():
     a = Tensor([5])
