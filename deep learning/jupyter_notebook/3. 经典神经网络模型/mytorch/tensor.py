@@ -175,6 +175,28 @@ class Tensor:
         
         out._backward = _backward
         return out
+    
+    def permute(self, *dims):
+        """
+        重新排列张量的维度。
+
+        参数:
+        *dims: 一个维度的序列，表示要排列成的新顺序。
+
+        返回:
+        Tensor: 经过维度重新排列后的新Tensor对象。
+        """
+        permuted_data = self.data.transpose(*dims)
+        out = Tensor(permuted_data, _prev=(self,), _op='permute')
+        
+        def _backward():
+            # 计算逆排列
+            inv_dims = np.argsort(dims)
+            self.grad += out.grad.transpose(*inv_dims)
+            
+        out._backward = _backward
+        return out
+
         
     @staticmethod
     def cat(tensors, dim=0):
