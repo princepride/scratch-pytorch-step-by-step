@@ -52,7 +52,7 @@ class Tensor:
             return NotImplemented
         return (np.array_equal(self.data, other.data) and 
                 self.trainable == other.trainable and
-                self.grad == other.grad)
+                np.array_equal(self.grad, other.grad))
     
     def __ne__(self, other):
         """
@@ -66,25 +66,61 @@ class Tensor:
         """
         return not self.__eq__(other)
     
+    # 当我们重写__eq__方法而没有同时重写__hash__方法时，Python会默认将我们的对象视为不可哈希的。
+    # 这是因为__eq__方法定义了对象相等性的行为，而哈希值(hash value)是用来在哈希表中快速比较键的一种机制。
+    # 如果两个对象被视为相等（即它们的__eq__方法返回True），那么它们的哈希值也应该相同。
+    # 为了保持一致性，当我们定义__eq__方法时，如果不定义__hash__方法，Python会将类的实例变为不可哈希的，
+    # 从而防止了使用不一致的哈希值导致的潜在问题。
+    def __hash__(self):
+        """
+        生成当前Tensor对象的哈希值。
+
+        哈希值是基于对象的唯一标识符（ID）、是否可训练的标志（trainable）、操作符（_op）以及标签（label）来生成的。
+        这确保了即使两个Tensor对象的内容相同，它们的哈希值也将基于它们的唯一性（内存地址）和其他属性而不同，
+        除非它们是同一个对象的引用。
+
+        返回:
+        int: 代表当前Tensor对象哈希值的整数。
+        """
+        return hash((id(self), self.trainable, self._op, self.label))
+    
+    @staticmethod
+    def from_numpy(ndarray, trainable=True):
+        """
+        从NumPy数组创建Tensor对象。
+        
+        参数:
+        ndarray (np.ndarray): 用于创建Tensor的NumPy数组。
+        
+        返回:
+        Tensor: 由NumPy数组创建的Tensor对象。
+        """
+        if isinstance(ndarray, Tensor):
+            ndarray.trainable = trainable
+            return ndarray
+        if isinstance(ndarray, np.ndarray):
+            return Tensor(ndarray, trainable = trainable)
+        if isinstance(ndarray, List):
+            return Tensor(ndarray, trainable= trainable)
+        raise TypeError("Input must be a NumPy array")
+    
     def unsqueeze(self, axis):
         """
         在指定轴上增加一个维度。
 
         参数:
-        axis (int): 要增加新维度的轴。例如，axis=0将在最外层添加一个新轴。
+        axis (int): 要增加新维度的轴。例如, axis=0将在最外层添加一个新轴。
 
         返回:
         Tensor: 经过增加维度后的新Tensor对象。
         """
-        new_shape = list(self.data.shape)
-        new_shape.insert(axis, 1)  # 在指定位置插入一个维度
-        reshaped_data = self.data.reshape(new_shape)
-        out = Tensor(reshaped_data, _prev=(self,), _op='unsqueeze')
+        expanded_data = np.expand_dims(self.data, axis=axis)  # 使用expand_dims来增加维度
+        out = Tensor(expanded_data, _prev=(self,), _op='unsqueeze')
         
         def _backward():
-            # unsqueeze操作的梯度传递只需要将多出来的维度移除
-            self.grad += out.grad.reshape(self.data.shape)
-            
+            # 逆向传播时不需要修改梯度，因为增加的维度不影响原始数据的梯度
+            self.grad += np.sum(out.grad, axis=axis).reshape(self.grad.shape)
+        
         out._backward = _backward
         return out
     
@@ -110,52 +146,7 @@ class Tensor:
             
         out._backward = _backward
         return out
-
-
-    @staticmethod
-    def from_numpy(ndarray, trainable=True):
-        """
-        从NumPy数组创建Tensor对象。
         
-        参数:
-        ndarray (np.ndarray): 用于创建Tensor的NumPy数组。
-        
-        返回:
-        Tensor: 由NumPy数组创建的Tensor对象。
-        """
-        if isinstance(ndarray, Tensor):
-            ndarray.trainable = trainable
-            return ndarray
-        if isinstance(ndarray, np.ndarray):
-            return Tensor(ndarray, trainable = trainable)
-        if isinstance(ndarray, List):
-            return Tensor(ndarray, trainable= trainable)
-        raise TypeError("Input must be a NumPy array")
-        
-
-    def __add__(self, other):
-        """
-        实现Tensor对象的加法运算。
-
-        参数:
-        other (Tensor, int, float): 与当前Tensor相加的另一个Tensor或标量。
-
-        返回:
-        Tensor: 加法运算的结果。
-        """
-        if isinstance(other, (int, float)):
-            other = Tensor(other * np.ones_like(self.data).astype(np.float32), trainable=False)
-        elif self.data.shape != other.data.shape:
-            raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
-
-        out = Tensor(self.data + other.data, (self, other), _op='+')
-
-        def _backward():
-            self.grad += 1.0 * out.grad
-            other.grad += 1.0 * out.grad
-        out._backward = _backward
-        return out
-
     @staticmethod
     def cat(tensors, dim=0):
         """
@@ -186,6 +177,29 @@ class Tensor:
             for t, grad in zip(tensors, grad_splits):
                 t.grad += grad
         
+        out._backward = _backward
+        return out
+
+    def __add__(self, other):
+        """
+        实现Tensor对象的加法运算。
+
+        参数:
+        other (Tensor, int, float): 与当前Tensor相加的另一个Tensor或标量。
+
+        返回:
+        Tensor: 加法运算的结果。
+        """
+        if isinstance(other, (int, float)):
+            other = Tensor(other * np.ones_like(self.data).astype(np.float32), trainable=False)
+        elif self.data.shape != other.data.shape:
+            raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
+
+        out = Tensor(self.data + other.data, (self, other), _op='+')
+
+        def _backward():
+            self.grad += 1.0 * out.grad
+            other.grad += 1.0 * out.grad
         out._backward = _backward
         return out
     

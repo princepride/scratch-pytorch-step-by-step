@@ -28,3 +28,22 @@ def test_from_numpy():
     assert Tensor.from_numpy(np.array([[1,2,3],[4,5,6]])) == Tensor([[1,2,3],[4,5,6]], trainable=True)
     assert Tensor.from_numpy(np.array([1,2,3])) != Tensor([1,2,3], trainable=False)
     assert Tensor.from_numpy(np.array([1,2,3]), trainable=False) != Tensor([1,2,3])
+
+def test_unsqueeze():
+    assert Tensor(5).unsqueeze(0) == Tensor([5])
+    assert Tensor([5,4,5]).unsqueeze(0) == Tensor([[5,4,5]])
+    assert Tensor([1,2,3]).unsqueeze(1) == Tensor([[1],[2],[3]])
+
+    a = Tensor([[1,2,3],[4,5,6]])
+    b = a.unsqueeze(1)
+    print(b)
+    assert b == Tensor([[[1,2,3]],[[4,5,6]]])
+    b.grad = np.array([[[[9,8,7]]],[[[6,5,4]]]])
+    b._backward()
+    assert (a.grad == np.array([[9,8,7],[6,5,4]])).all()
+
+def test_cat():
+    a = Tensor([5])
+    b = Tensor([6])
+    c = Tensor([[1,2]])
+    d = Tensor([4,5,6])
