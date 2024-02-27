@@ -12,11 +12,11 @@ class Tensor:
         初始化一个Tensor对象。
         
         参数:
-        data (array_like): 包含Tensor数据的数组。
+        data (array_like): 包含Tensor数据的数组, 支持(int, float, List, np.array)数据类型。
         _prev (tuple, 可选): 与当前Tensor相关的前置Tensor对象集合。
         trainable (bool, 可选): 指示Tensor是否应该在训练过程中更新。
         _op (str, 可选): 与Tensor关联的操作符。
-        label (str, 可选): Tensor的标签，用于调试和可视化。
+        label (str, 可选): Tensor的标签, 用于调试和可视化。
         """
         if isinstance(data, Tensor):
             raise TypeError("Tensor被用于初始化的数据类型不能是Tensor类型")

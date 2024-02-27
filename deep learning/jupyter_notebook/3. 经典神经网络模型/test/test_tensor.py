@@ -5,7 +5,9 @@ import pytest
 
 def test_init():
     assert Tensor(5) == Tensor(5.0)
-    assert Tensor([1,2,3]) == Tensor(np.array([1,2,3]))
+    assert Tensor([1,2,3]) == Tensor(np.array([1,2,3]), trainable=True)
+    assert Tensor([1,2,3], trainable=False) == Tensor(np.array([1,2,3]), trainable=False)
+    assert (Tensor([[1,2,3],[4,5,6]]).grad == np.array([[0,0,0],[0,0,0]])).all()
 
     with pytest.raises(TypeError) as e:
         Tensor(Tensor(5))
@@ -13,6 +15,10 @@ def test_init():
 
     with pytest.raises(TypeError) as e:
         Tensor((5,6,7))
+    assert str(e.value) == "未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化"
+
+    with pytest.raises(TypeError) as e:
+        Tensor({'a':'123','b':'12'})
     assert str(e.value) == "未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化"
 
 def test_from_numpy():
