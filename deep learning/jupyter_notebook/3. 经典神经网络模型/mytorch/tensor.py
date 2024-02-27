@@ -197,6 +197,29 @@ class Tensor:
         out._backward = _backward
         return out
 
+    def transpose(self, dim0, dim1):
+        """
+        交换张量中的两个维度。
+
+        参数:
+        dim0 (int): 要交换的第一个维度。
+        dim1 (int): 要交换的第二个维度。
+
+        返回:
+        Tensor: 经过维度交换后的新Tensor对象。
+        """
+        dims = list(range(self.data.ndim))  # 获取所有维度
+        dims[dim0], dims[dim1] = dims[dim1], dims[dim0]  # 交换两个维度
+        transposed_data = self.data.transpose(*dims)
+        out = Tensor(transposed_data, _prev=(self,), _op='transpose')
+        
+        def _backward():
+            # 交换回梯度的维度
+            self.grad += out.grad.transpose(*dims)
+            
+        out._backward = _backward
+        return out
+
         
     @staticmethod
     def cat(tensors, dim=0):
