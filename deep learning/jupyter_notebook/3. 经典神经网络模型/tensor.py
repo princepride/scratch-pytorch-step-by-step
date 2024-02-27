@@ -30,6 +30,33 @@ class Tensor:
         out._backward = _backward
         return out
     
+    def unsqueeze(self, axis):
+        new_shape = list(self.data.shape)
+        new_shape.insert(axis, 1)  # 在指定位置插入一个维度
+        reshaped_data = self.data.reshape(new_shape)
+        out = Tensor(reshaped_data, _prev=(self,), _op='unsqueeze')
+        
+        def _backward():
+            # unsqueeze操作的梯度传递只需要将多出来的维度移除
+            self.grad += out.grad.reshape(self.data.shape)
+            
+        out._backward = _backward
+        return out
+    
+    def reshape(self, new_shape):
+        # 确保新形状与原始数据中的元素总数相同
+        assert np.prod(new_shape) == np.prod(self.data.shape), "新形状的元素总数必须与原始形状相同"
+        
+        reshaped_data = self.data.reshape(new_shape)
+        out = Tensor(reshaped_data, _prev=(self,), _op='reshape')
+        
+        def _backward():
+            # reshape操作的梯度传递只涉及形状的变化，数据本身不改变
+            self.grad += out.grad.reshape(self.data.shape)
+            
+        out._backward = _backward
+        return out
+
     @staticmethod
     def from_numpy(ndarray):
         if not isinstance(ndarray, np.ndarray):
