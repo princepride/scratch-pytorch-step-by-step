@@ -69,6 +69,14 @@ def test_unsqueeze():
     b.grad = np.array([[[[9,8,7]]],[[[6,5,4]]]])
     b._backward()
     assert (a.grad == np.array([[9,8,7],[6,5,4]])).all()
+    with pytest.raises(TypeError) as e:
+        Tensor(5).unsqueeze(0.9)
+    assert str(e.value) == "在unsqueeze函数中, axis必须是一个整数"
+
+    with pytest.raises(ValueError) as e:
+        Tensor([[1],[2],[3]]).unsqueeze(3)
+    assert str(e.value) == "axis 3 越界。有效范围是 [-3, 2]"
+
 
 def test_reshape():
     assert Tensor([[1,2,3],[4,5,6]]).reshape((6,)) == Tensor([1,2,3,4,5,6])

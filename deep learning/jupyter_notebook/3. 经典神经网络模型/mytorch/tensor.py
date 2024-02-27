@@ -114,6 +114,12 @@ class Tensor:
         返回:
         Tensor: 经过增加维度后的新Tensor对象。
         """
+        if not isinstance(axis, int):
+            raise TypeError("在unsqueeze函数中, axis必须是一个整数")
+        
+        if axis < -(self.data.ndim + 1) or axis > self.data.ndim:
+            raise ValueError(f"axis {axis} 越界。有效范围是 [{-(self.data.ndim + 1)}, {self.data.ndim}]")
+        
         expanded_data = np.expand_dims(self.data, axis=axis)  # 使用expand_dims来增加维度
         out = Tensor(expanded_data, _prev=(self,), _op='unsqueeze')
         
