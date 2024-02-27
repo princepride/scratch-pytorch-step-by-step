@@ -8,6 +8,9 @@ def cat(tensors: Tuple[Tensor, ...], dim: int = 0) -> Tensor:
 def tanh(tensor:Tensor) -> Tensor:
     return tensor.tanh()
 
+def sigmoid(tensor:Tensor) -> Tensor:
+    return tensor.sigmoid()
+
 def from_numpy(ndarray: np.ndarray) -> Tensor:
     return Tensor.from_numpy(ndarray)
 
