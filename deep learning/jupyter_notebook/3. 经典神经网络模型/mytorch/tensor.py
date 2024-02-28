@@ -117,7 +117,7 @@ class Tensor:
         else:
             if not isinstance(dim, int):
                 raise TypeError("dim 必须是整型（int）")
-            if dim < 0 or dim >= len(self.data.shape):
+            if dim < -len(self.data.shape) or dim >= len(self.data.shape):
                 raise IndexError("维度超出范围")
             return self.data.shape[dim]
         

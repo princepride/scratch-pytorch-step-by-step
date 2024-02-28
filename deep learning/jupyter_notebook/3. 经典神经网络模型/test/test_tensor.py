@@ -59,7 +59,15 @@ def test_from_numpy():
     assert Tensor.from_numpy(np.array([1,2,3]), trainable=False) != Tensor([1,2,3])
 
 def test_size():
-    pass
+    a = Tensor([[[1],[2]],[[3],[3]],[[4],[5]]])
+    assert a.size() == (3,2,1)
+    assert a.size(1) == 2
+    assert a.size(-2) == 2
+    assert a.size(-3) == 3
+    with pytest.raises(TypeError):
+        a.size(1.)
+    with pytest.raises(IndexError):
+        a.size(-4)
 
 def test_unsqueeze():
     assert Tensor(5).unsqueeze(0) == Tensor([5])
