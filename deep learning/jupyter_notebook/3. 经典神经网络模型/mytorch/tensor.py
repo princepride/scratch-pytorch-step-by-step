@@ -292,19 +292,36 @@ class Tensor:
         3. 反向传播时，梯度将被正确分配回各个原始Tensor。
         """
         assert all(isinstance(t, Tensor) for t in tensors), "所有输入必须是Tensor对象"
+        if not tensors:
+            raise ValueError("tensors 不能为空列表")
+        
+        # 检查dim参数是否合法
+        ndim = tensors[0].data.ndim
+        if dim < 0:
+            dim += ndim
+        if not 0 <= dim < ndim:
+            raise ValueError(f"dim 参数超出范围，接受的范围是0到{ndim-1}，或者对应的负数索引")
+        
+        # 检查所有Tensor是否可以在指定维度上拼接
+        reference_shape = list(tensors[0].data.shape)
+        for t in tensors[1:]:
+            t_shape = list(t.data.shape)
+            if len(t_shape) != len(reference_shape):
+                raise ValueError("所有Tensor的维度数必须相同")
+            t_shape[dim] = reference_shape[dim]  # 忽略拼接维度
+            if t_shape != reference_shape:
+                raise ValueError("所有Tensor在非拼接维度上的大小必须相同")
 
         data = [t.data for t in tensors]
         concatenated_data = np.concatenate(data, axis=dim)
         
-        # 创建一个新的Tensor对象作为cat操作的结果
         out = Tensor(concatenated_data, _prev=tuple(tensors), _op='cat')
         
         def _backward():
-            # 分割out.grad并将相应的梯度分配给原始的Tensor对象
             grad_splits = np.split(out.grad, np.cumsum([t.data.shape[dim] for t in tensors[:-1]]), axis=dim)
             for t, grad in zip(tensors, grad_splits):
                 t.grad += grad
-        
+                
         out._backward = _backward
         return out
 

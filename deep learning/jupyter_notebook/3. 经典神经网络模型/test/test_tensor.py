@@ -152,9 +152,9 @@ def test_squeeze():
 
 def test_permute():
     # 正确的使用场景
-    a = Tensor(np.array([[1, 2], [3, 4]]))
+    a = Tensor([[1, 2], [3, 4]])
     b = a.permute(1, 0)
-    assert np.array_equal(b.data, np.array([[1, 3], [2, 4]]))
+    assert b == Tensor([[1, 3], [2, 4]])
     
     # 测试维度数不匹配
     with pytest.raises(ValueError):
@@ -169,9 +169,9 @@ def test_permute():
         a.permute(0, '1')  # '1' 不是整型
     
     # 使用负数维度
-    c = Tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+    c = Tensor([[1, 2, 3], [4, 5, 6]])
     d = c.permute(-1, -2)
-    assert np.array_equal(d.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    assert d == Tensor([[1, 4], [2, 5], [3, 6]])
     
     # 测试梯度反向传播
     d.grad = np.array([[1, 2], [3, 4], [5, 6]])
@@ -179,9 +179,9 @@ def test_permute():
     assert np.array_equal(c.grad, np.array([[1, 3, 5], [2, 4, 6]]))
 
 def test_transpose():
-    a = Tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+    a = Tensor([[1, 2, 3], [4, 5, 6]])
     b = a.transpose(0, 1)
-    assert np.array_equal(b.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    assert b == Tensor([[1, 4], [2, 5], [3, 6]])
     
     with pytest.raises(TypeError):
         a.transpose('0', 1)  # 测试参数类型错误
@@ -191,12 +191,43 @@ def test_transpose():
 
     # 测试负索引
     c = a.transpose(-1, -2)
-    assert np.array_equal(c.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    assert c == Tensor([[1, 4], [2, 5], [3, 6]])
     
     # 测试梯度反向传播
     c.grad = np.array([[1, 2], [3, 4], [5, 6]])
     c._backward()
     assert np.array_equal(a.grad, np.array([[1, 3, 5], [2, 4, 6]]))
+
+def test_cat():
+    a = Tensor([[1, 2], [3, 4]])
+    b = Tensor([[5, 6], [7, 8]])
+
+    p = Tensor([1,2,3,4])
+    q = Tensor([5,6,7,8])
+    assert Tensor.cat([p, q], dim=0) == Tensor([1,2,3,4,5,6,7,8])
+    
+    # 正确的拼接
+    c = Tensor.cat([a, b], dim=0)
+    assert c == Tensor([[1, 2], [3, 4], [5, 6], [7, 8]])
+    
+    # 测试维度不匹配
+    d = Tensor([[9, 10, 11]])
+    with pytest.raises(ValueError):
+        Tensor.cat([a, d], dim=0)
+    
+    # 测试拼接维度超出范围
+    with pytest.raises(ValueError):
+        Tensor.cat([a, b], dim=3)
+    
+    # 测试空列表
+    with pytest.raises(ValueError):
+        Tensor.cat([], dim=0)
+    
+    # 测试梯度反向传播
+    c.grad = np.array([[2, 1], [4, 3], [6, 5], [8, 7]])
+    c._backward()
+    assert np.array_equal(a.grad, [[2, 1], [4, 3]])
+    assert np.array_equal(b.grad, [[6, 5], [8, 7]])
 
 def test_cat():
     a = Tensor([5])
