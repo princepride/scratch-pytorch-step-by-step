@@ -430,26 +430,32 @@ class Tensor:
         实现Tensor对象的乘法运算。
 
         参数:
-        other (Tensor, int, float): 与当前Tensor相乘的另一个Tensor或标量。
+        other (Tensor, int, float, np.ndarray): 与当前Tensor相乘的另一个Tensor或标量。
 
         返回:
         Tensor: 乘法运算的结果。
         """
         if isinstance(other, Tensor):
-            # 对于两个 Tensor 对象的矩阵乘法
-            if self.data.ndim != 2 or other.data.ndim != 2:
-                raise ValueError("矩阵乘法要求两个张量都是二维的")
-
-            out = Tensor(np.dot(self.data, other.data), (self, other), _op='·')
-
-            def _backward():
-                self.grad += np.dot(out.grad, other.data.T)
-                other.grad += np.dot(self.data.T, out.grad)
+            # 确保张量与张量的乘法
+            if self.data.ndim == 2 and other.data.ndim == 2:
+                # 矩阵乘法
+                out_data = np.dot(self.data, other.data)
+            else:
+                # 逐元素乘法或者广播乘法
+                out_data = self.data * other.data
+            out = Tensor(out_data, (self, other), _op='*')
+        elif isinstance(other, (int, float, np.ndarray)):
+            # 标量乘法或者与ndarray的乘法
+            out = Tensor(self.data * other, (self,), _op='*')
         else:
-            # 对于标量乘法
-            out = Tensor(self.data * other, (self,), _op='·')
-            def _backward():
-                self.grad += other * out.grad
+            raise TypeError("乘法运算只支持 Tensor、int、float 或 np.ndarray 类型")
+
+        def _backward():
+            if isinstance(other, Tensor):
+                self.grad += out.grad * (other.data if other.data.ndim == self.data.ndim else other.data.T)
+                other.grad += out.grad * (self.data if other.data.ndim == self.data.ndim else self.data.T)
+            else:  # other is either a scalar or np.ndarray
+                self.grad += out.grad * other
 
         out._backward = _backward
         return out

@@ -330,3 +330,38 @@ def test_neg():
     result.grad = np.array([[1, 1, 1]])
     result._backward()
     assert np.array_equal(a.grad, np.array([[-1, -1, -1]]))
+
+def test_mul():
+    # 创建两个Tensor对象
+    a = Tensor([1, 2, 3])
+    b = Tensor([4, 5, 6])
+
+    # 测试逐元素乘法
+    result_elementwise = a * b
+    assert np.array_equal(result_elementwise.data, np.array([4, 10, 18])), "Element-wise multiplication failed."
+
+    # 测试标量乘法
+    result_scalar = a * 2
+    assert np.array_equal(result_scalar.data, np.array([2, 4, 6])), "Scalar multiplication failed."
+
+    # 测试矩阵乘法
+    a_matrix = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
+    b_matrix = Tensor(np.array([[2], [1]], dtype=np.float32))
+    result_matrix = a_matrix * b_matrix
+    assert np.array_equal(result_matrix.data, np.array([[4], [10]])), "Matrix multiplication failed."
+
+    # 测试广播乘法
+    a_higher_dim = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
+    b_higher_dim = Tensor(np.array([10], dtype=np.float32))  # Broadcast across second dimension
+    result_broadcast = a_higher_dim * b_higher_dim
+    assert np.array_equal(result_broadcast.data, np.array([[10, 20], [30, 40]])), "Broadcast multiplication failed."
+
+    # 测试反向传播
+    result_elementwise.grad = np.array([1, 1, 1], dtype=np.float32)  # 假设每个元素的梯度是1
+    result_elementwise._backward()
+    assert np.array_equal(a.grad, b.data), "Backward pass for element-wise multiplication failed."
+    assert np.array_equal(b.grad, a.data), "Backward pass for element-wise multiplication failed."
+
+    # 测试不兼容类型的乘法
+    with pytest.raises(TypeError):
+        _ = a * "not a number or tensor"
