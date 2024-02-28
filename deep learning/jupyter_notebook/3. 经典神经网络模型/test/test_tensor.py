@@ -124,6 +124,7 @@ def test_squeeze():
     c = Tensor([[[1],[2]],[[3],[3]],[[4],[5]]])
     d = c.squeeze(axis=2)
     assert d.size() == (3, 2)
+    assert c.squeeze(-1).size() == (3, 2)
 
     e = Tensor([1, 2, 3])
     f = e.squeeze()
@@ -144,6 +145,58 @@ def test_squeeze():
     with pytest.raises(TypeError):
         k = Tensor([1, 2, 3])
         k.squeeze(axis='0')
+
+    with pytest.raises(ValueError):
+        l = Tensor([1, 2, 3])
+        l.squeeze(axis=-2)
+
+def test_permute():
+    # 正确的使用场景
+    a = Tensor(np.array([[1, 2], [3, 4]]))
+    b = a.permute(1, 0)
+    assert np.array_equal(b.data, np.array([[1, 3], [2, 4]]))
+    
+    # 测试维度数不匹配
+    with pytest.raises(ValueError):
+        a.permute(0)
+    
+    # 测试维度超出范围
+    with pytest.raises(ValueError):
+        a.permute(0, 2)
+    
+    # 测试维度数据类型不正确
+    with pytest.raises(TypeError):
+        a.permute(0, '1')  # '1' 不是整型
+    
+    # 使用负数维度
+    c = Tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+    d = c.permute(-1, -2)
+    assert np.array_equal(d.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    
+    # 测试梯度反向传播
+    d.grad = np.array([[1, 2], [3, 4], [5, 6]])
+    d._backward()
+    assert np.array_equal(c.grad, np.array([[1, 3, 5], [2, 4, 6]]))
+
+def test_transpose():
+    a = Tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+    b = a.transpose(0, 1)
+    assert np.array_equal(b.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    
+    with pytest.raises(TypeError):
+        a.transpose('0', 1)  # 测试参数类型错误
+    
+    with pytest.raises(ValueError):
+        a.transpose(0, 2)  # 测试维度范围错误
+
+    # 测试负索引
+    c = a.transpose(-1, -2)
+    assert np.array_equal(c.data, np.array([[1, 4], [2, 5], [3, 6]]))
+    
+    # 测试梯度反向传播
+    c.grad = np.array([[1, 2], [3, 4], [5, 6]])
+    c._backward()
+    assert np.array_equal(a.grad, np.array([[1, 3, 5], [2, 4, 6]]))
 
 def test_cat():
     a = Tensor([5])

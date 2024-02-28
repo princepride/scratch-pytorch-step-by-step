@@ -188,8 +188,8 @@ class Tensor:
         if axis is not None:
             if not isinstance(axis, int):
                 raise TypeError("axis 必须是一个整型(int)")
-            if axis < 0 or axis >= self.data.ndim:
-                raise ValueError(f"axis 的值必须在0到{self.data.ndim - 1}之间")
+            if axis < -self.data.ndim or axis >= self.data.ndim:
+                raise ValueError(f"axis 的值必须在{-self.data.ndim}到{self.data.ndim - 1}之间")
             
             # 如果指定了 axis，检查这个维度是否确实是单维的
             if self.data.shape[axis] != 1:
@@ -223,6 +223,15 @@ class Tensor:
         返回:
         Tensor: 经过维度重新排列后的新Tensor对象。
         """
+        if len(dims) != self.data.ndim:
+            raise ValueError(f"permute 需要 {self.data.ndim} 维度的参数")
+        
+        if not all(isinstance(d, int) for d in dims):
+            raise TypeError("dims 中的所有元素必须是整型(int)")
+        
+        if any(d < -self.data.ndim or d >= self.data.ndim for d in dims):
+            raise ValueError(f"dims 中的维度超出了张量的维度范围 [-{self.data.ndim}, {self.data.ndim - 1}]")
+
         permuted_data = self.data.transpose(*dims)
         out = Tensor(permuted_data, _prev=(self,), _op='permute')
         
@@ -245,13 +254,20 @@ class Tensor:
         返回:
         Tensor: 经过维度交换后的新Tensor对象。
         """
-        dims = list(range(self.data.ndim))  # 获取所有维度
-        dims[dim0], dims[dim1] = dims[dim1], dims[dim0]  # 交换两个维度
+        if not isinstance(dim0, int) or not isinstance(dim1, int):
+            raise TypeError("dim0 和 dim1 必须是整数")
+        if dim0 < -self.data.ndim or dim0 >= self.data.ndim or dim1 < -self.data.ndim or dim1 >= self.data.ndim:
+            raise ValueError("dim0 或 dim1 超出了张量的维度范围")
+
+        dim0 = dim0 if dim0 >= 0 else self.data.ndim + dim0
+        dim1 = dim1 if dim1 >= 0 else self.data.ndim + dim1
+
+        dims = list(range(self.data.ndim))
+        dims[dim0], dims[dim1] = dims[dim1], dims[dim0]
         transposed_data = self.data.transpose(*dims)
         out = Tensor(transposed_data, _prev=(self,), _op='transpose')
         
         def _backward():
-            # 交换回梯度的维度
             self.grad += out.grad.transpose(*dims)
             
         out._backward = _backward
@@ -276,6 +292,7 @@ class Tensor:
         3. 反向传播时，梯度将被正确分配回各个原始Tensor。
         """
         assert all(isinstance(t, Tensor) for t in tensors), "所有输入必须是Tensor对象"
+
         data = [t.data for t in tensors]
         concatenated_data = np.concatenate(data, axis=dim)
         
