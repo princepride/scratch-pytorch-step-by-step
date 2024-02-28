@@ -22,3 +22,7 @@
 | 3.6  | 用pytorch从头到尾实现transformer模型                                        | ✅     |
 | 3.7  | 用mytorch从头到位实现transformer模型                                        | ⬜     |
 | 3.8  | 实现mamba模型                                                               | ⬜     |
+
+## 主程序
+
+在`mytorch source code`文件目录下
