@@ -337,8 +337,14 @@ class Tensor:
         """
         if isinstance(other, (int, float)):
             other = Tensor(other * np.ones_like(self.data).astype(np.float32), trainable=False)
-        elif self.data.shape != other.data.shape:
-            raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
+        elif isinstance(other, np.ndarray):
+            other = Tensor(other.astype(np.float32), trainable=False)
+        elif isinstance(other, Tensor):
+            pass
+        else:
+            raise TypeError("不支持的数据类型,只支持int,float,np.narray,Tensor数据类型")
+        if self.data.shape != other.data.shape:
+            raise ValueError("Tensor加法运算形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
 
         out = Tensor(self.data + other.data, (self, other), _op='+')
 

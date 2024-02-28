@@ -228,3 +228,35 @@ def test_cat():
     c._backward()
     assert np.array_equal(a.grad, [[2, 1], [4, 3]])
     assert np.array_equal(b.grad, [[6, 5], [8, 7]])
+
+def test_add():
+    # 测试Tensor和Tensor相加
+    a = Tensor(np.array([1, 2, 3], dtype=np.float32))
+    b = Tensor(np.array([4, 5, 6], dtype=np.float32))
+    c = a + b
+    assert np.array_equal(c.data, np.array([5, 7, 9]))
+
+    # 测试Tensor和标量相加
+    d = a + 1
+    assert np.array_equal(d.data, np.array([2, 3, 4]))
+
+    # 测试Tensor和NumPy数组相加
+    e = a + np.array([1, 1, 1], dtype=np.float32)
+    assert np.array_equal(e.data, np.array([2, 3, 4]))
+
+    # 测试形状不匹配
+    with pytest.raises(ValueError):
+        f = a + Tensor(np.array([1, 2]))
+
+    # 测试梯度反向传播
+    g = Tensor(np.array([1, 2, 3], dtype=np.float32))
+    h = Tensor(np.array([4, 5, 6], dtype=np.float32))
+    i = g + h
+    i.grad = np.array([1, 2, 3], dtype=np.float32)  # 假设最终梯度为1
+    i._backward()
+    assert np.array_equal(g.grad, np.array([1, 2, 3]))
+    assert np.array_equal(h.grad, np.array([1, 2, 3]))
+
+    # 测试与不支持的类型相加
+    with pytest.raises(TypeError):
+        j = a + "string"
