@@ -228,9 +228,3 @@ def test_cat():
     c._backward()
     assert np.array_equal(a.grad, [[2, 1], [4, 3]])
     assert np.array_equal(b.grad, [[6, 5], [8, 7]])
-
-def test_cat():
-    a = Tensor([5])
-    b = Tensor([6])
-    c = Tensor([[1,2]])
-    d = Tensor([4,5,6])
