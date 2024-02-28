@@ -427,36 +427,30 @@ class Tensor:
 
     def __mul__(self, other):
         """
-        实现Tensor对象的乘法运算。
+        实现Tensor对象的叉乘运算。
 
         参数:
         other (Tensor, int, float, np.ndarray): 与当前Tensor相乘的另一个Tensor或标量。
 
         返回:
-        Tensor: 乘法运算的结果。
+        Tensor: 叉乘运算的结果。
         """
         if isinstance(other, Tensor):
-            # 确保张量与张量的乘法
-            if self.data.ndim == 2 and other.data.ndim == 2:
-                # 矩阵乘法
-                out_data = np.dot(self.data, other.data)
-            else:
-                # 逐元素乘法或者广播乘法
-                out_data = self.data * other.data
-            out = Tensor(out_data, (self, other), _op='*')
+            if self.data.shape != other.data.shape:
+                raise ValueError("元素级乘法要求两个张量形状相同")
+            out = Tensor(self.data * other.data, (self, other), _op='*')
         elif isinstance(other, (int, float, np.ndarray)):
-            # 标量乘法或者与ndarray的乘法
             out = Tensor(self.data * other, (self,), _op='*')
         else:
             raise TypeError("乘法运算只支持 Tensor、int、float 或 np.ndarray 类型")
-
+        
         def _backward():
             if isinstance(other, Tensor):
-                self.grad += out.grad * (other.data if other.data.ndim == self.data.ndim else other.data.T)
-                other.grad += out.grad * (self.data if other.data.ndim == self.data.ndim else self.data.T)
+                self.grad += other.data * out.grad
+                other.grad += self.data * out.grad
             else:  # other is either a scalar or np.ndarray
-                self.grad += out.grad * other
-
+                self.grad += other * out.grad
+        
         out._backward = _backward
         return out
     
@@ -471,6 +465,40 @@ class Tensor:
         Tensor: 乘法运算的结果。
         """
         return self.__mul__(other)
+    
+    def matmul(self, other):
+        """
+        实现当前Tensor与另一个Tensor之间的矩阵乘法。
+        """
+        if not isinstance(other, Tensor):
+            raise TypeError("matmul 方法的参数必须是 Tensor 类型")
+
+        # 验证是否为至少一维张量，并且除了最后两个维度，其他维度匹配或者可广播
+        if self.data.ndim < 1 or other.data.ndim < 1:
+            raise ValueError("矩阵乘法要求张量至少是一维的")
+        if self.data.shape[:-2] != other.data.shape[:-2] and self.data.shape[:-2] != (1,) and other.data.shape[:-2] != (1,):
+            raise ValueError("除了最后两个维度外，其他所有维度的大小必须相同或者为1以进行广播")
+
+        out = Tensor(np.matmul(self.data, other.data), (self, other), _op='@')
+
+        def _backward():
+            # 反向传播需要根据输入的维度进行调整
+            if self.data.ndim > 1 and other.data.ndim > 1:
+                grad_A = np.matmul(out.grad, other.data.swapaxes(-1, -2))
+                grad_B = np.matmul(self.data.swapaxes(-1, -2), out.grad)
+            elif self.data.ndim > 1:
+                grad_A = np.matmul(out.grad, other.data.T)
+                grad_B = np.sum(self.data.T * out.grad, axis=0)
+            elif other.data.ndim > 1:
+                grad_A = np.sum(out.grad * other.data.T, axis=-1)
+                grad_B = np.matmul(self.data.T, out.grad)
+
+            # 更新梯度，考虑到可能的广播
+            self.grad = self.grad + grad_A.reshape(self.data.shape)
+            other.grad = other.grad + grad_B.reshape(other.data.shape)
+
+        out._backward = _backward
+        return out
     
     def __truediv__(self, other):
         """
