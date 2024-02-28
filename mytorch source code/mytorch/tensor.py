@@ -486,16 +486,19 @@ class Tensor:
             if self.data.ndim > 1 and other.data.ndim > 1:
                 grad_A = np.matmul(out.grad, other.data.swapaxes(-1, -2))
                 grad_B = np.matmul(self.data.swapaxes(-1, -2), out.grad)
-            elif self.data.ndim > 1:
-                grad_A = np.matmul(out.grad, other.data.T)
-                grad_B = np.sum(self.data.T * out.grad, axis=0)
-            elif other.data.ndim > 1:
-                grad_A = np.sum(out.grad * other.data.T, axis=-1)
-                grad_B = np.matmul(self.data.T, out.grad)
+            elif self.data.ndim == 1 and other.data.ndim > 1:  # self是向量，other是矩阵
+                grad_A = np.dot(out.grad, other.data.T)
+                grad_B = np.dot(self.data.reshape(-1, 1), out.grad.reshape(1, -1))
+            elif self.data.ndim > 1 and other.data.ndim == 1:  # self是矩阵，other是向量
+                grad_A = np.dot(out.grad.reshape(-1, 1), other.data.reshape(1, -1))
+                grad_B = np.dot(self.data.T, out.grad)
+            else:  # 处理其他情况，例如两者都是向量
+                raise NotImplementedError("目前不支持这种维度的反向传播")
 
             # 更新梯度，考虑到可能的广播
-            self.grad = self.grad + grad_A.reshape(self.data.shape)
-            other.grad = other.grad + grad_B.reshape(other.data.shape)
+            self.grad += grad_A.reshape(self.data.shape)
+            other.grad += grad_B.reshape(other.data.shape)
+
 
         out._backward = _backward
         return out

@@ -368,7 +368,6 @@ def test_mul():
     with pytest.raises(TypeError):
         _ = a * "string"
 
-
 def test_rmul():
     # 创建一个Tensor对象
     a = Tensor([4, 5, 6])
@@ -386,3 +385,75 @@ def test_rmul():
     c = np.array([2, 3, 4], dtype=np.float32)
     result = c * a  # 这应该调用 a.__rmul__(c)
     assert result == Tensor([8, 15, 24])
+
+def test_matmul():
+    # 向量与矩阵相乘
+    v = Tensor([1, 2])
+    m = Tensor([[1, 2], [3, 4]])
+    vm_result = v.matmul(m)
+    assert vm_result == Tensor([7, 10])
+
+    # 矩阵与向量相乘
+    mv_result = m.matmul(v)
+    assert mv_result == Tensor([5, 11])
+
+    # 矩阵与矩阵相乘
+    m2 = Tensor([[2, 0], [0, 2]])
+    mm_result = m.matmul(m2)
+    assert mm_result == Tensor([[2, 4], [6, 8]])
+
+    # 测试梯度反向传播
+    mm_result.grad = np.ones(mm_result.data.shape, dtype=np.float32)
+    mm_result._backward()
+    assert np.array_equal(m.grad, np.array([[2, 2], [2, 2]]))
+
+    # 矩阵与矩阵相乘的反向传播
+    a = Tensor([[1, 2], [3, 4]])
+    b = Tensor([[5, 6], [7, 8]])
+    result = a.matmul(b)
+    result.grad = np.array([[1, 0], [0, 1]], dtype=np.float32)  # 模拟梯度
+    result._backward()
+    assert np.array_equal(a.grad, np.array([[5, 7], [6, 8]]))
+    assert np.array_equal(b.grad, np.array([[1, 3], [2, 4]]))
+
+    # 批量矩阵乘法的反向传播
+    a = Tensor(np.random.rand(2, 3, 4))
+    b = Tensor(np.random.rand(2, 4, 5))
+    result = a.matmul(b)
+    result.grad = np.ones(result.data.shape, dtype=np.float32)  # 假设梯度全为1
+    result._backward()
+    assert a.grad.shape == a.data.shape
+    assert b.grad.shape == b.data.shape
+
+    # 向量与矩阵相乘的反向传播
+    a = Tensor([1, 2, 3],)
+    b = Tensor([[1, 2], [3, 4], [5, 6]])
+    result = a.matmul(b)
+    result.grad = np.array([1, 1], dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([3, 7, 11]))
+    assert np.array_equal(b.grad, np.array([[1, 1], [2, 2], [3, 3]]))
+
+    # 矩阵与向量相乘的反向传播
+    a = Tensor([[1, 2], [3, 4]])
+    b = Tensor([1, 2])
+    result = a.matmul(b)
+    result.grad = np.array([1, 1], dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([[1, 2], [1, 2]]))
+    assert np.array_equal(b.grad, np.array([4, 6]))
+
+    # 批量矩阵乘法
+    b1 = Tensor(np.random.rand(2, 3, 4))
+    b2 = Tensor(np.random.rand(2, 4, 5))
+    batch_result = b1.matmul(b2)
+    assert batch_result.data.shape == (2, 3, 5)
+
+    # 测试形状不匹配的张量相乘
+    m3 = Tensor([[1, 2], [3, 4], [5, 6]])
+    with pytest.raises(ValueError):
+        _ = m.matmul(m3)
+
+    # 测试与不支持的类型相乘
+    with pytest.raises(TypeError):
+        _ = m.matmul("string")
