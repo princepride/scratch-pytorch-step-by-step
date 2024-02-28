@@ -317,3 +317,16 @@ def test_sub():
     # 测试与不支持的类型相减
     with pytest.raises(TypeError):
         _ = a - "string"
+
+def test_neg():
+    # 创建一个Tensor对象
+    a = Tensor([[1, -2, 3]])
+    
+    # 对Tensor应用负号操作
+    result = -a
+    assert result == Tensor([[-1, 2, -3]])
+    
+    # 测试梯度反向传播
+    result.grad = np.array([[1, 1, 1]])
+    result._backward()
+    assert np.array_equal(a.grad, np.array([[-1, -1, -1]]))
