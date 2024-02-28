@@ -140,7 +140,12 @@ class Tensor:
         返回:
         Tensor: 重塑后的新Tensor对象。
         """
-        # 确保新形状与原始数据中的元素总数相同
+        if not isinstance(new_shape, tuple):
+            raise TypeError("new_shape 必须是一个元组(tuple)。")
+        
+        if not all(isinstance(dim, int) for dim in new_shape):
+            raise TypeError("new_shape 中的所有元素都必须是整型(int)。")
+
         assert np.prod(new_shape) == np.prod(self.data.shape), "新形状的元素总数必须与原始形状相同"
         
         reshaped_data = self.data.reshape(new_shape)

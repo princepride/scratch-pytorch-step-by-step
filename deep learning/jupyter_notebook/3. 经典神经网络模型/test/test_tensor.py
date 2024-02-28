@@ -97,6 +97,17 @@ def test_reshape():
     d._backward()
     assert (c.grad == np.array([[1,2,3],[3,4,5]])).all()
 
+    with pytest.raises(TypeError) as e:
+        Tensor([1,2,3,4,5,6]).reshape([1,2,3])
+    assert str(e.value) == "new_shape 必须是一个元组(tuple)。"
+
+    with pytest.raises(TypeError) as e:
+        Tensor([1,2,3,4,5,6]).reshape((1.,2.,3.))
+    assert str(e.value) == "new_shape 中的所有元素都必须是整型(int)。"
+
+def test_squeeze():
+    pass
+
 def test_cat():
     a = Tensor([5])
     b = Tensor([6])
