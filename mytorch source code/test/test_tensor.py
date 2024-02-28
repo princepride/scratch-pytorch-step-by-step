@@ -333,35 +333,56 @@ def test_neg():
 
 def test_mul():
     # 创建两个Tensor对象
-    a = Tensor([1, 2, 3])
-    b = Tensor([4, 5, 6])
+    a = Tensor([4, 5, 6])
+    b = Tensor([1, 2, 3])
 
-    # 测试逐元素乘法
-    result_elementwise = a * b
-    assert np.array_equal(result_elementwise.data, np.array([4, 10, 18])), "Element-wise multiplication failed."
+    # Tensor与Tensor相乘
+    result = a * b
+    assert result == Tensor([4, 10, 18])
 
-    # 测试标量乘法
-    result_scalar = a * 2
-    assert np.array_equal(result_scalar.data, np.array([2, 4, 6])), "Scalar multiplication failed."
+    e = Tensor([[1,2,3],[3,2,1]])
+    f = Tensor([[2,3,1],[1,3,2]])
+    assert e * f == Tensor([[2,6,3],[3,6,2]])
 
-    # 测试矩阵乘法
-    a_matrix = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
-    b_matrix = Tensor(np.array([[2], [1]], dtype=np.float32))
-    result_matrix = a_matrix * b_matrix
-    assert np.array_equal(result_matrix.data, np.array([[4], [10]])), "Matrix multiplication failed."
+    # Tensor与标量相乘
+    scalar_multiplication = a * 2
+    assert scalar_multiplication == Tensor([8, 10, 12])
 
-    # 测试广播乘法
-    a_higher_dim = Tensor(np.array([[1, 2], [3, 4]], dtype=np.float32))
-    b_higher_dim = Tensor(np.array([10], dtype=np.float32))  # Broadcast across second dimension
-    result_broadcast = a_higher_dim * b_higher_dim
-    assert np.array_equal(result_broadcast.data, np.array([[10, 20], [30, 40]])), "Broadcast multiplication failed."
+    # 测试梯度反向传播
+    result.grad = np.array([1, 1, 1], dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([1, 2, 3]))
+    assert np.array_equal(b.grad, np.array([4, 5, 6]))
 
-    # 测试反向传播
-    result_elementwise.grad = np.array([1, 1, 1], dtype=np.float32)  # 假设每个元素的梯度是1
-    result_elementwise._backward()
-    assert np.array_equal(a.grad, b.data), "Backward pass for element-wise multiplication failed."
-    assert np.array_equal(b.grad, a.data), "Backward pass for element-wise multiplication failed."
+    # 测试与np.ndarray相乘
+    c = np.array([2, 4, 6], dtype=np.float32)
+    ndarray_multiplication = a * c
+    assert ndarray_multiplication == Tensor([8, 20, 36])
 
-    # 测试不兼容类型的乘法
+    # 测试形状不匹配的Tensor相乘
+    d = Tensor(np.array([10, 20], dtype=np.float32))
+    with pytest.raises(ValueError):
+        _ = a * d
+
+    # 测试与不支持的类型相乘
     with pytest.raises(TypeError):
-        _ = a * "not a number or tensor"
+        _ = a * "string"
+
+
+def test_rmul():
+    # 创建一个Tensor对象
+    a = Tensor([4, 5, 6])
+
+    # 标量在左侧时的乘法
+    result = 3 * a
+    assert result == Tensor([12, 15, 18])
+
+    # 测试梯度反向传播
+    result.grad = np.array([1, 1, 1], dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([3, 3, 3 ]))
+
+    # 测试与np.ndarray相乘
+    c = np.array([2, 3, 4], dtype=np.float32)
+    result = c * a  # 这应该调用 a.__rmul__(c)
+    assert result == Tensor([8, 15, 24])
