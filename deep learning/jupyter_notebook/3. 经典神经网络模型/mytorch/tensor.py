@@ -104,6 +104,23 @@ class Tensor:
             return Tensor(ndarray, trainable= trainable)
         raise TypeError("Input must be a NumPy array")
     
+    def size(self, dim=None):
+        """
+        参数:
+        - dim: 可选，整数，指定想要获取大小的维度。
+        
+        返回:
+        - 如果指定了dim，则为整数；如果没有指定，则为表示张量形状的元组。
+        """
+        if dim is None:
+            return self.data.shape
+        else:
+            if not isinstance(dim, int):
+                raise TypeError("dim 必须是整型（int）")
+            if dim < 0 or dim >= len(self.data.shape):
+                raise IndexError("维度超出范围")
+            return self.data.shape[dim]
+        
     def unsqueeze(self, axis):
         """
         在指定轴上增加一个维度。
@@ -168,6 +185,15 @@ class Tensor:
         返回:
         Tensor: 经过压缩维度后的新Tensor对象。
         """
+        if axis is not None:
+            if not isinstance(axis, int):
+                raise TypeError("axis 必须是一个整型(int)")
+            if axis < 0 or axis >= self.data.ndim:
+                raise ValueError(f"axis 的值必须在0到{self.data.ndim - 1}之间")
+            
+            # 如果指定了 axis，检查这个维度是否确实是单维的
+            if self.data.shape[axis] != 1:
+                raise ValueError(f"指定的 axis={axis} 维度不是单维的，不能被移除")
         if axis is None:
             squeezed_data = np.squeeze(self.data)
         else:
@@ -509,21 +535,6 @@ class Tensor:
         out._backward = _backward
 
         return out
-    
-    def size(self, dim=None):
-        """
-        参数:
-        - dim: 可选，整数，指定想要获取大小的维度。
-        
-        返回:
-        - 如果指定了dim，则为整数；如果没有指定，则为表示张量形状的元组。
-        """
-        if dim is None:
-            return self.data.shape
-        else:
-            if dim < 0 or dim >= len(self.data.shape):
-                raise IndexError("维度超出范围")
-            return self.data.shape[dim]
     
     def gradient_descent_opt(self, learning_rate=0.001, grad_zero=True):
         """

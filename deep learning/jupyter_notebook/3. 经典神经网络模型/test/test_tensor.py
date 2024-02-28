@@ -58,6 +58,9 @@ def test_from_numpy():
     assert Tensor.from_numpy(np.array([1,2,3])) != Tensor([1,2,3], trainable=False)
     assert Tensor.from_numpy(np.array([1,2,3]), trainable=False) != Tensor([1,2,3])
 
+def test_size():
+    pass
+
 def test_unsqueeze():
     assert Tensor(5).unsqueeze(0) == Tensor([5])
     assert Tensor([5,4,5]).unsqueeze(0) == Tensor([[5,4,5]])
@@ -106,7 +109,33 @@ def test_reshape():
     assert str(e.value) == "new_shape 中的所有元素都必须是整型(int)。"
 
 def test_squeeze():
-    pass
+    a = Tensor([[[1, 2, 3]]])
+    b = a.squeeze()
+    assert b.size() == (3,)
+
+    c = Tensor([[[1],[2]],[[3],[3]],[[4],[5]]])
+    d = c.squeeze(axis=2)
+    assert d.size() == (3, 2)
+
+    e = Tensor([1, 2, 3])
+    f = e.squeeze()
+    assert f.size() == (3,)
+
+    g = Tensor([[[[1]]]])
+    h = g.squeeze()
+    assert h.size() == ()
+
+    with pytest.raises(ValueError):
+        i = Tensor([[1, 2, 3]])
+        i.squeeze(axis=1)
+
+    with pytest.raises(ValueError):
+        j = Tensor([1, 2, 3])
+        j.squeeze(axis=3)
+
+    with pytest.raises(TypeError):
+        k = Tensor([1, 2, 3])
+        k.squeeze(axis='0')
 
 def test_cat():
     a = Tensor([5])
