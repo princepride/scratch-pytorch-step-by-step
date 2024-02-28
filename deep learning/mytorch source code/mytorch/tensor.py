@@ -2,6 +2,10 @@ import math
 import numpy as np
 from typing import List
 class Tensor:
+
+    # 给予Tensor类更高的优先级
+    __array_priority__ = 1.0
+    
     """
     Tensor类代表一个多维数组，用于神经网络中的张量运算。
     它支持基本的算术运算，如加减乘除和幂运算，并支持一些激活函数。

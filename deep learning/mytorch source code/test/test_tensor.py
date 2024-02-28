@@ -242,7 +242,7 @@ def test_add():
 
     # 测试Tensor和NumPy数组相加
     e = a + np.array([1, 1, 1], dtype=np.float32)
-    assert np.array_equal(e.data, np.array([2, 3, 4]))
+    assert e == Tensor([2, 3, 4])
 
     # 测试形状不匹配
     with pytest.raises(ValueError):
@@ -259,4 +259,28 @@ def test_add():
 
     # 测试与不支持的类型相加
     with pytest.raises(TypeError):
-        j = a + "string"
+        _ = a + "string"
+
+def test_radd():
+    # 创建一个Tensor对象
+    a = Tensor([1, 2, 3])
+    
+    # 标量在左侧时的加法
+    result = 10 + a
+    assert result == Tensor([11, 12, 13])
+    
+    # 测试梯度反向传播
+    result.grad = np.array([1, 1, 1])
+    result._backward()
+    assert np.array_equal(a.grad, np.array([1, 1, 1]))
+    
+    # 测试与np.ndarray的加法
+    b = np.array([10, 20, 30])
+    result = b + a
+    print(result)
+    print(a+b)
+    assert result == Tensor([11, 22, 33])
+    
+    # 测试与不支持的类型相加
+    with pytest.raises(TypeError):
+        _ = "string" + a
