@@ -1,7 +1,4 @@
-# scratch-anything
+# scratch-pytorch-step-by-step
 
-本项目的宗旨是手撸一切，用最基础的循环条件语句，实现从神经网络框架到Bitcoin这种去中心化金融产品，从3D游戏引擎到Mysql数据库。授人以鱼不如授人以渔，最好的学习方式就是教会别人，因此我会在YouTube上制作视频，而这里会有所有视频的源码。让我们开始scratch anything!
+本项目会一步步教你实现语法风格类似pytorch的深度学习框架，众所周知pytorch实际上是靠C语言实现的底层函数，再用python和底层函数绑定。考虑到太过于还原可能会增加学习门槛（主要本人不太会），本教程会用python的基础语法和numpy实现深度学习领域的一些基础算法，包括反向传播，随机梯度下降，Adam优化器，Dropout层等。实现的模型包括CNN, RNN, LSTM, ResNet, transformer等。
 
-## scratch-pytorch
-
-pytorch是深度学习领域的最重要的框架，本教程主要分为4个部分。①用基础编程语言实现pytorch语法风格的深度学习框架。②用我们自己的深度学习框架去实现CNN，RNN，ResNet, transformer这些经典模型。③学习pytorch框架并用来实现一些流行的模型：Blip-2，stable-diffusion，Llama2。④介绍深度学习领域的大杀器transformer这一由huggingface提供的软件包
