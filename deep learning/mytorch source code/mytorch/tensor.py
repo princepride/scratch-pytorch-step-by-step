@@ -5,7 +5,7 @@ class Tensor:
 
     # 给予Tensor类更高的优先级
     __array_priority__ = 1.0
-    
+
     """
     Tensor类代表一个多维数组，用于神经网络中的张量运算。
     它支持基本的算术运算，如加减乘除和幂运算，并支持一些激活函数。
@@ -380,14 +380,22 @@ class Tensor:
         返回:
         Tensor: 减法运算的结果。
         """
-        if isinstance(other, (int, float)):
+        if isinstance(other, Tensor):
+            if self.data.shape != other.data.shape:
+                raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
+        elif isinstance(other, (int, float)):
             other = Tensor(other * np.ones_like(self.data).astype(np.float32), trainable=False)
-        elif self.data.shape != other.data.shape:
-            raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
+        elif isinstance(other, np.ndarray):
+            other = Tensor(other.astype(np.float32), trainable=False)
+        else:
+            raise TypeError("不支持的数据类型，减法运算只支持 Tensor、int、float 或 np.ndarray 类型")
+
         out = Tensor(self.data - other.data, (self, other), _op='-')
+
         def _backward():
             self.grad += 1.0 * out.grad
             other.grad -= 1.0 * out.grad
+
         out._backward = _backward
         return out
 

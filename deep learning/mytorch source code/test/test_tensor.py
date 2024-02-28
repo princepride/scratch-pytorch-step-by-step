@@ -284,3 +284,36 @@ def test_radd():
     # 测试与不支持的类型相加
     with pytest.raises(TypeError):
         _ = "string" + a
+
+def test_sub():
+    # 创建两个Tensor对象
+    a = Tensor([4, 5, 6])
+    b = Tensor([1, 2, 3])
+
+    # Tensor与Tensor相减
+    result = a - b
+    assert result == Tensor([3, 3, 3])
+
+    # Tensor与标量相减
+    scalar_subtraction = a - 1
+    assert scalar_subtraction == Tensor([3, 4, 5])
+
+    # 测试梯度反向传播
+    result.grad = np.array([1, 2, 3], dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([1, 2, 3]))
+    assert np.array_equal(b.grad, np.array([-1, -2, -3]))
+
+    # 测试与np.ndarray相减
+    c = np.array([2, 4, 6], dtype=np.float32)
+    ndarray_subtraction = a - c
+    assert ndarray_subtraction == Tensor([2, 1, 0])
+
+    # 测试形状不匹配的Tensor相减
+    d = Tensor(np.array([10, 20], dtype=np.float32))
+    with pytest.raises(ValueError):
+        _ = a - d
+
+    # 测试与不支持的类型相减
+    with pytest.raises(TypeError):
+        _ = a - "string"
