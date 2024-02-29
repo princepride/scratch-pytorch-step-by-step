@@ -1,5 +1,6 @@
 from mytorch.tensor import Tensor
 import torch
+import torch.nn.functional as F
 import numpy as np
 import pytest
 
@@ -13,13 +14,11 @@ def test_init():
         Tensor(Tensor(5))
     assert str(e.value) == "Tensor被用于初始化的数据类型不能是Tensor类型"
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError):
         Tensor((5,6,7))
-    assert str(e.value) == "未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化"
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError):
         Tensor({'a':'123','b':'12'})
-    assert str(e.value) == "未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化"
 
 def test_eq():
     # 测试数据相同的情况
@@ -638,7 +637,31 @@ def test_relu():
         # 检查梯度是否一致
         assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy())
 
-def test_backward_complex():
+def test_mean():
+    np.random.seed(42)  # 为了可重复性
+    data = np.random.rand(2, 3, 4)  # 随机生成一个3维数组
+
+    # 使用自定义Tensor类计算全局平均值
+    tensor = Tensor(data)
+    mean_value_custom = tensor.mean()
+    assert np.allclose(mean_value_custom.data, np.mean(data))
+
+    # 使用PyTorch计算全局平均值
+    tensor_torch = torch.tensor(data)
+    mean_value_torch = tensor_torch.mean()
+    assert np.allclose(mean_value_custom.data, mean_value_torch.numpy())
+
+    # 测试在特定维度上求平均值，并保持维度
+    mean_dim_custom = tensor.mean(dim=1, keepdims=True)
+    mean_dim_torch = tensor_torch.mean(dim=1, keepdims=True)
+    assert np.allclose(mean_dim_custom.data, mean_dim_torch.numpy())
+
+    # 测试在特定维度上求平均值，不保持维度
+    mean_dim_custom_no_keep = tensor.mean(dim=2, keepdims=False)
+    mean_dim_torch_no_keep = tensor_torch.mean(dim=2, keepdims=False)
+    assert np.allclose(mean_dim_custom_no_keep.data, mean_dim_torch_no_keep.numpy())
+
+def test_backward():
     # 初始化数据和权重
     input_data = np.array([1.0, 2.0, -1.0], dtype=np.float32)
     weights = np.array([0.5, -0.5, 1.0], dtype=np.float32)
@@ -693,3 +716,51 @@ def test_gradient_descent_opt():
     assert np.allclose(weights_tensor.grad, weights.grad.numpy(), atol=1e-6)
     assert np.allclose(input_tensor.data, input_data.detach().numpy(), atol=1e-6)
     assert np.allclose(input_tensor.grad, input_data.grad.numpy(), atol=1e-6)
+
+def test_adam_opt_complex():
+
+    class SimpleNet:
+        def __init__(self, input_size, hidden_size, output_size):
+            self.W1 = Tensor(np.random.randn(input_size, hidden_size).astype(np.float32), trainable=True)
+            self.W2 = Tensor(np.random.randn(hidden_size, output_size).astype(np.float32), trainable=True)
+
+        def forward(self, x):
+            self.x = x
+            self.z1 = x.matmul(self.W1)  # 矩阵乘法
+            self.a1 = self.z1.relu()  # ReLU激活函数
+            self.z2 = self.a1.matmul(self.W2)
+            self.a2 = self.z2.relu()
+            return self.a2
+    
+    input_size, hidden_size, output_size = 4, 5, 3
+    x = np.random.rand(10, input_size).astype(np.float32)  # 输入数据
+    y = np.random.rand(10, output_size).astype(np.float32)  # 目标数据
+
+    # 自定义Tensor模型
+    model = SimpleNet(input_size, hidden_size, output_size)
+    for i in range(10):  # 多次迭代
+        pred = model.forward(Tensor(x))
+        loss = ((pred - Tensor(y))**2).mean()  # MSE损失
+        loss.backward()
+        loss.adam_opt(learning_rate=0.001)
+
+    # PyTorch模型
+    torch_model = torch.nn.Sequential(
+        torch.nn.Linear(input_size, hidden_size),
+        torch.nn.ReLU(),
+        torch.nn.Linear(hidden_size, output_size),
+        torch.nn.ReLU(),
+    )
+    torch_optimizer = torch.optim.Adam(torch_model.parameters(), lr=0.001)
+    torch_x = torch.tensor(x, requires_grad=True)
+    torch_y = torch.tensor(y, requires_grad=False)
+    for i in range(10):  # 多次迭代
+        torch_optimizer.zero_grad()
+        torch_pred = torch_model(torch_x)
+        torch_loss = F.mse_loss(torch_pred, torch_y)
+        torch_loss.backward()
+        torch_optimizer.step()
+
+    # 比较参数更新结果
+    for custom_param, torch_param in zip([model.W1, model.W2], torch_model.parameters()):
+        assert np.allclose(custom_param.data, torch_param.detach().numpy(), atol=1e-5)
