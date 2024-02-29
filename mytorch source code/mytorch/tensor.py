@@ -590,13 +590,14 @@ class Tensor:
         Tensor: 应用双曲正切后的Tensor。
         """
         x = self.data
-        t = (math.exp(2*x) - 1)/(math.exp(2*x) + 1)
+        t = (np.exp(2*x) - 1) / (np.exp(2*x) + 1)
         out = Tensor(t, (self, ), _op='tanh')
-        
+
         def _backward():
-            self.grad += (1 - t**2) * out.grad
+            # 注意这里使用了 out.data 来计算梯度
+            self.grad += (1 - out.data ** 2) * out.grad
         out._backward = _backward
-        
+
         return out
     
     def sigmoid(self):

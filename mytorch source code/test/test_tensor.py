@@ -1,5 +1,5 @@
 from mytorch.tensor import Tensor
-import math
+import torch
 import numpy as np
 import pytest
 
@@ -559,4 +559,28 @@ def test_dropout():
     # 检查梯度是否仅在未被丢弃的元素上更新
     assert np.all((a.grad == 0) | (a.grad == 1 / (1 - 0.5)))
 
-test_dropout()
+def test_tanh():
+    test_cases = [
+        np.array([0.0]),
+        np.array([-1.0, 0.0, 1.0]),
+        np.array([[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]]),
+    ]
+
+    for data in test_cases:
+        tensor = Tensor(data)
+        result = tensor.tanh()
+
+        torch_tensor = torch.tensor(data, dtype=torch.float32, requires_grad=True)
+        expected = torch.tanh(torch_tensor)
+
+        # 检查前向传播的值是否接近
+        assert np.allclose(result.data, expected.detach().numpy(), atol=1e-6)
+
+        # 为了进行梯度检查，我们需要对result和expected进行反向传播
+        result.grad = np.ones_like(result.data)
+        result._backward()
+        
+        expected.backward(torch.ones_like(expected))
+        
+        # 检查梯度是否接近
+        assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy(), atol=1e-6)
