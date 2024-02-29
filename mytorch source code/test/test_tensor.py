@@ -536,3 +536,27 @@ def test_pow():
     result_b.grad = np.ones_like(result_b.data, dtype=np.float32)
     result_b._backward()
     assert np.allclose(b.grad, 1 / (2 * np.sqrt(b.data)))
+
+def test_dropout():
+    # 创建一个Tensor对象
+    data = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    a = Tensor(data)
+    
+    # 训练模式下的dropout
+    dropout_a = a.dropout(dropout_probability=0.5, is_training=True)
+    # 检查dropout是否应用（部分元素应该为0）
+    assert np.any(dropout_a.data == 0)
+    
+    # 非训练模式下的dropout
+    dropout_a_not_training = a.dropout(dropout_probability=0.5, is_training=False)
+    # 检查Tensor是否未被修改
+    assert np.array_equal(dropout_a_not_training.data, data)
+    
+    # 反向传播测试
+    # 假设dropout后的Tensor对象可以计算梯度并调用_backward()
+    dropout_a.grad = np.ones_like(dropout_a.data)
+    dropout_a._backward()
+    # 检查梯度是否仅在未被丢弃的元素上更新
+    assert np.all((a.grad == 0) | (a.grad == 1 / (1 - 0.5)))
+
+test_dropout()
