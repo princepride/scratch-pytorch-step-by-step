@@ -24,16 +24,14 @@ class Tensor:
         """
         if isinstance(data, Tensor):
             raise TypeError("Tensor被用于初始化的数据类型不能是Tensor类型")
-        if isinstance(data, int):
-            data = np.array(data, dtype=np.float32)
-        elif isinstance(data, float):
+        elif np.isscalar(data):
             data = np.array(data, dtype=np.float32)
         elif isinstance(data, List):
             data = np.array(data, dtype=np.float32)
         elif isinstance(data, np.ndarray):
             pass
         else:
-            raise TypeError("未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化")
+            raise TypeError(f"未知的初始化数据类型, Tensor类只可用int, float, List以及np.ndarray进行初始化, 现在传入data的数据类型是{type(data)}")
         self.data = data
         self.grad = np.zeros_like(data, dtype=np.float32)
         self._backward = lambda: None
@@ -633,6 +631,39 @@ class Tensor:
             self.grad += (x > 0) * out.grad  # Gradient is 1 for x > 0, otherwise 0
         out._backward = _backward
         return out
+    
+    def mean(self, dim=None, keepdims=False):
+        """
+        在指定维度上计算Tensor的平均值。
+        
+        参数:
+        dim (int, 可选): 要求平均值的维度。
+        keepdims (bool, 可选): 是否保持输出的维度不变。
+        """
+        if dim is None:
+            # 如果没有指定维度，就计算所有元素的平均值
+            forward_value = np.mean(self.data)
+            n = self.data.size
+        else:
+            # 计算指定维度的平均值
+            forward_value = np.mean(self.data, axis=dim, keepdims=keepdims)
+            n = self.data.shape[dim]
+
+        out = Tensor(forward_value, (self,), _op='mean')
+
+        def _backward():
+            if dim is None or keepdims:
+                grad = np.ones_like(self.data, dtype=np.float32) * (out.grad / n)
+            else:
+                # 当不保持维度且指定了维度时，需要扩展梯度以匹配原始数据形状
+                expand_shape = list(self.data.shape)
+                expand_shape[dim] = 1
+                grad = np.ones(expand_shape, dtype=np.float32) * (out.grad / n)
+                grad = np.broadcast_to(grad, self.data.shape)
+            self.grad += grad
+
+        out._backward = _backward
+        return out
 
     def backward(self, grad=1.):
         """
@@ -678,15 +709,11 @@ class Tensor:
         使用Adam优化算法优化Tensor中的参数。
 
         参数:
-        t (int): 当前优化的时间步。
         learning_rate (float, 可选): 学习率。
         beta1 (float, 可选): 一阶矩估计的指数衰减率。
         beta2 (float, 可选): 二阶矩估计的指数衰减率。
         epsilon (float, 可选): 用于防止除以零的小数。
         grad_zero (bool, 可选): 是否在优化后将梯度重置为零。
-
-        返回:
-        int: 更新后的时间步。
         """
         self.optim_step += 1  # 递增整个优化过程的时间步
         for tensor in self.visited:
