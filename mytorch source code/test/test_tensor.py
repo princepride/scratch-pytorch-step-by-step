@@ -610,3 +610,56 @@ def test_sigmoid():
 
         expected.backward(torch.ones_like(expected))
         assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy(), atol=1e-6)
+
+def test_relu():
+    test_cases = [
+        5,
+        np.array([-1.0, 0.0, 1.0]),
+        np.array([[-1.0, 2.0, -3.0], [4.0, -5.0, 6.0]]),
+        np.array([0.0]),
+    ]
+
+    for data in test_cases:
+        tensor = Tensor(data)
+        result = tensor.relu()
+
+        torch_tensor = torch.tensor(data, dtype=torch.float32, requires_grad=True)
+        expected = torch.relu(torch_tensor)
+
+        # 检查前向传播的值是否一致
+        assert np.allclose(result.data, expected.detach().numpy())
+
+        # 准备反向传播测试
+        result.grad = np.ones_like(result.data)
+        result._backward()
+
+        expected.backward(torch.ones_like(expected))
+
+        # 检查梯度是否一致
+        assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy())
+
+def test_backward_complex():
+    # 初始化数据和权重
+    input_data = np.array([1.0, 2.0, -1.0], dtype=np.float32)
+    weights = np.array([0.5, -0.5, 1.0], dtype=np.float32)
+    
+    # 自定义Tensor计算
+    input_tensor = Tensor(input_data)
+    weights_tensor = Tensor(weights)
+    output_tensor = input_tensor * weights_tensor  # 简单的线性层
+    sigmoid_output = output_tensor.sigmoid()  # Sigmoid激活函数
+    sigmoid_output.backward()  # 反向传播
+    
+    # 使用PyTorch进行相同的计算
+    input_torch = torch.tensor(input_data, requires_grad=True)
+    weights_torch = torch.tensor(weights, requires_grad=True)
+    output_torch = input_torch * weights_torch  # 线性层
+    sigmoid_output_torch = torch.sigmoid(output_torch)  # Sigmoid激活
+    sigmoid_output_torch.backward(torch.ones_like(sigmoid_output_torch))  # 反向传播
+    
+    # 比较输入和权重的梯度
+    assert np.allclose(input_tensor.grad, input_torch.grad.numpy(), atol=1e-6), "Input gradients do not match"
+    assert np.allclose(weights_tensor.grad, weights_torch.grad.numpy(), atol=1e-6), "Weight gradients do not match"
+
+    with pytest.raises(ValueError):
+        sigmoid_output.backward([1.])

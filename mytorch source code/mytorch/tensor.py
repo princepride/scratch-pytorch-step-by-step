@@ -627,13 +627,32 @@ class Tensor:
         x = self.data
         r = np.maximum(0, x)  # 使用 numpy 的 maximum 函数
         out = Tensor(r, (self,), _op='relu')
-
         def _backward():
             self.grad += (x > 0) * out.grad  # Gradient is 1 for x > 0, otherwise 0
         out._backward = _backward
-
         return out
-    
+
+    def backward(self, grad=1.):
+        """
+        执行反向传播算法，计算梯度。
+        """
+        if not isinstance(grad, (int, float)):
+            raise ValueError("初始梯度必须为整型或字符型, 建议设为1。")
+        topo = []
+        # 记录下已访问过的Tensor集合
+        self.visited = set()
+        def build_topo(v):
+            if v not in self.visited:
+                self.visited.add(v)
+                for child in v._prev:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+        # 因为上面得到的topo序列顺序是反的，所以我们在逐步计算偏导数时需要先进行逆序操作
+        self.grad = grad
+        for node in reversed(topo):
+            node._backward()
+
     def gradient_descent_opt(self, learning_rate=0.001, grad_zero=True):
         """
         使用梯度下降算法优化Tensor中的参数。
@@ -686,27 +705,6 @@ class Tensor:
                 tensor.grad = 0
 
         return t  # 返回更新后的时间步
-
-
-
-    def backward(self, ):
-        """
-        执行反向传播算法，计算梯度。
-        """
-        topo = []
-        # 记录下已访问过的Tensor集合
-        self.visited = set()
-        def build_topo(v):
-            if v not in self.visited:
-                self.visited.add(v)
-                for child in v._prev:
-                    build_topo(child)
-                topo.append(v)
-        build_topo(self)
-        # 因为上面得到的topo序列顺序是反的，所以我们在逐步计算偏导数时需要先进行逆序操作
-        self.grad = 1.
-        for node in reversed(topo):
-            node._backward()
     
     def __repr__(self):
         """
