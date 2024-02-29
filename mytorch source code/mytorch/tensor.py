@@ -608,11 +608,11 @@ class Tensor:
         Tensor: 应用Sigmoid后的Tensor。
         """
         x = self.data
-        s = 1 / (1 + math.exp(-x))
+        s = 1 / (1 + np.exp(-x))
         out = Tensor(s, (self,), _op='sigmoid')
 
         def _backward():
-            self.grad += (s * (1 - s)) * out.grad
+            self.grad += out.data * (1 - out.data) * out.grad
         out._backward = _backward
 
         return out

@@ -561,6 +561,7 @@ def test_dropout():
 
 def test_tanh():
     test_cases = [
+        5,
         np.array([0.0]),
         np.array([-1.0, 0.0, 1.0]),
         np.array([[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]]),
@@ -583,4 +584,29 @@ def test_tanh():
         expected.backward(torch.ones_like(expected))
         
         # 检查梯度是否接近
+        assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy(), atol=1e-6)
+
+def test_sigmoid():
+    test_cases = [
+        5,
+        np.array([0.0]),
+        np.array([-1.0, 0.0, 1.0]),
+        np.array([[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]]),
+    ]
+
+    for data in test_cases:
+        tensor = Tensor(data)
+        result = tensor.sigmoid()
+
+        torch_tensor = torch.tensor(data, dtype=torch.float32, requires_grad=True)
+        expected = torch.sigmoid(torch_tensor)
+
+        # 检查前向传播的值是否接近
+        assert np.allclose(result.data, expected.detach().numpy(), atol=1e-6)
+
+        # 检查梯度是否接近
+        result.grad = np.ones_like(result.data)
+        result._backward()
+
+        expected.backward(torch.ones_like(expected))
         assert np.allclose(tensor.grad, torch_tensor.grad.detach().numpy(), atol=1e-6)
