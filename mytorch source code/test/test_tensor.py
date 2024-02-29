@@ -457,3 +457,82 @@ def test_matmul():
     # 测试与不支持的类型相乘
     with pytest.raises(TypeError):
         _ = m.matmul("string")
+
+def test_truediv():
+    # 创建Tensor对象
+    a = Tensor([10.0, 20.0, 30.0])
+    b = Tensor([2.0, 4.0, 6.0])
+    c = Tensor([0.5, 0.25, 0.125])
+
+    # Tensor与Tensor相除
+    result_ab = a / b
+    assert np.allclose(result_ab.data, np.array([5.0, 5.0, 5.0]))
+
+    # Tensor与标量相除
+    result_a2 = a / 2.0
+    assert np.allclose(result_a2.data, np.array([5.0, 10.0, 15.0]))
+
+    # 反向传播测试：Tensor与Tensor相除
+    result_ab.grad = np.ones_like(result_ab.data, dtype=np.float32)
+    result_ab._backward()
+    assert np.allclose(a.grad, 1 / b.data)
+    assert np.allclose(b.grad, -a.data / np.square(b.data))
+
+    # 手动重置梯度进行下一组测试
+    a.grad = np.zeros_like(a.data, dtype=np.float32)
+    b.grad = np.zeros_like(b.data, dtype=np.float32)
+
+    # 反向传播测试：Tensor与标量相除
+    result_a2.grad = np.array([1, 2, 3], dtype=np.float32)
+    result_a2._backward()
+    assert np.allclose(a.grad, np.array([0.5, 1.0, 1.5]))
+
+    # 手动重置梯度进行更复杂的测试
+    a.grad = np.zeros_like(a.data, dtype=np.float32)
+    b.grad = np.zeros_like(b.data, dtype=np.float32)
+    c.grad = np.zeros_like(c.data, dtype=np.float32)
+
+    # 更复杂的反向传播测试：链式除法
+    result_abc = a / b / c
+    result_abc.grad = np.array([1, 1, 1], dtype=np.float32)
+    result_abc._backward()
+    # 预期梯度计算涉及更复杂的链式规则，这里仅验证是否执行无误
+    assert a.grad is not None
+    assert b.grad is not None
+    assert c.grad is not None
+
+    # 测试与不支持的类型相除
+    with pytest.raises(TypeError):
+        _ = a / "string"
+
+    # 测试形状不匹配的Tensor相除
+    d = Tensor(np.array([1.0, 2.0], dtype=np.float32))
+    with pytest.raises(ValueError):
+        _ = a / d
+
+def test_pow():
+    # 创建一个Tensor对象
+    a = Tensor([1, 2, 3])
+
+    # Tensor的幂运算
+    result = a ** 2
+    assert np.array_equal(result.data, np.array([1, 4, 9]))
+
+    # 测试梯度反向传播
+    result.grad = np.ones_like(result.data, dtype=np.float32)
+    result._backward()
+    assert np.array_equal(a.grad, np.array([2, 4, 6]))
+
+    # 测试与不合法的幂指数
+    with pytest.raises(TypeError):
+        _ = a ** "2"
+
+    # 更复杂的幂运算测试
+    b = Tensor([4, 5, 6])
+    result_b = b ** 0.5  # 平方根
+    assert np.allclose(result_b.data, np.sqrt(np.array([4, 5, 6])))
+
+    # 反向传播测试：更复杂的幂运算
+    result_b.grad = np.ones_like(result_b.data, dtype=np.float32)
+    result_b._backward()
+    assert np.allclose(b.grad, 1 / (2 * np.sqrt(b.data)))

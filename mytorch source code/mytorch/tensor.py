@@ -513,16 +513,21 @@ class Tensor:
         返回:
         Tensor: 除法运算的结果。
         """
+        if not isinstance(other, (Tensor, int, float)):
+            raise TypeError("除法运算只支持Tensor、int、float类型")
+
         if isinstance(other, (int, float)):
-            other = Tensor(other * np.ones_like(self.data).astype(np.float32), trainable=False)
-        elif self.data.shape != other.data.shape:
+            other = Tensor(other * np.ones_like(self.data, dtype=np.float32), trainable=False)
+        elif isinstance(other, Tensor) and self.data.shape != other.data.shape:
             raise ValueError("形状不匹配：{} 和 {}".format(self.data.shape, other.data.shape))
 
         out = Tensor(self.data / other.data, (self, other), _op='/')
 
         def _backward():
             self.grad += np.divide(1, other.data) * out.grad
-            other.grad -= np.divide(self.data, np.square(other.data)) * out.grad
+            if other.trainable:
+                other.grad -= np.divide(self.data, np.square(other.data)) * out.grad
+
         out._backward = _backward
         return out
     
@@ -537,11 +542,14 @@ class Tensor:
         返回:
         Tensor: 幂运算的结果。
         """
+        if not isinstance(power, (int, float)):
+            raise TypeError("幂指数只支持int或float类型")
         out = Tensor(self.data ** power, (self,), _op='**')
         def _backward():
             self.grad += power * (self.data ** (power - 1)) * out.grad
         out._backward = _backward
         return out
+
     
     def dropout(self, dropout_probability=0.5, is_training=True):
         """
