@@ -663,3 +663,33 @@ def test_backward_complex():
 
     with pytest.raises(ValueError):
         sigmoid_output.backward([1.])
+    
+def test_gradient_descent_opt():
+    # 初始化数据、权重和目标值
+    input_data = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    weights = torch.tensor([0.5, 1., 1.5], requires_grad=True)
+    target = torch.tensor([2.0, 3.0, 4.0])
+    
+    # 自定义Tensor计算
+    input_tensor = Tensor([1.0, 2.0, 3.0])
+    weights_tensor = Tensor([0.5, 1., 1.5])
+    predicted = input_tensor * weights_tensor
+    loss = (predicted - Tensor([2.0, 3.0, 4.0])) ** 2
+    loss.backward()
+    loss.gradient_descent_opt(learning_rate=0.01, grad_zero=True)
+    
+    # 使用PyTorch进行相同的计算
+    predicted_torch = input_data * weights
+    loss_torch = (predicted_torch - target) ** 2
+    loss_torch.backward(torch.ones_like(loss_torch))
+    with torch.no_grad():  # 禁用梯度计算
+        weights -= 0.01 * weights.grad
+        input_data -= 0.01 * input_data.grad
+    # 重置梯度
+    weights.grad.zero_()  
+    input_data.grad.zero_()
+    # 比较权重的更新结果
+    assert np.allclose(weights_tensor.data, weights.detach().numpy(), atol=1e-6)
+    assert np.allclose(weights_tensor.grad, weights.grad.numpy(), atol=1e-6)
+    assert np.allclose(input_tensor.data, input_data.detach().numpy(), atol=1e-6)
+    assert np.allclose(input_tensor.grad, input_data.grad.numpy(), atol=1e-6)

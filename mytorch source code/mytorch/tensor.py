@@ -42,6 +42,8 @@ class Tensor:
         self._op = _op
         self.label = label
 
+        self.optim_step = 0  # 添加优化步骤计数器
+
     def __eq__(self, other):
         """
         比较当前Tensor和另一个Tensor的数据和训练标志。
@@ -661,13 +663,17 @@ class Tensor:
         learning_rate (float, 可选): 学习率。
         grad_zero (bool, 可选): 是否在优化后将梯度重置为零。
         """
-        for v in self.visited:
-            if v.trainable:
-                v.data -= learning_rate * v.grad
-            if grad_zero:
-                v.grad = 0
+        # 确保已经执行了 backward 方法并计算了梯度
+        if hasattr(self, 'visited'):
+            for v in self.visited:
+                if v.trainable:
+                    v.data -= learning_rate * v.grad
+                if grad_zero:
+                    v.grad = 0
+        else:
+            raise AttributeError("没有'visited'这个属性. 请在运行optimization前先运行backward()")
 
-    def adam_opt(self, t, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, grad_zero=True):
+    def adam_opt(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, grad_zero=True):
         """
         使用Adam优化算法优化Tensor中的参数。
 
@@ -682,29 +688,27 @@ class Tensor:
         返回:
         int: 更新后的时间步。
         """
-        t += 1  # 递增整个优化过程的时间步
+        self.optim_step += 1  # 递增整个优化过程的时间步
         for tensor in self.visited:
             if tensor.trainable:
                 # 初始化动量和速度
                 if not hasattr(tensor, 'momentum'):
                     tensor.momentum = np.zeros_like(tensor.data, dtype=np.float32)
                     tensor.velocity = np.zeros_like(tensor.data, dtype=np.float32)
-                
+
                 # 更新动量和速度
                 tensor.momentum = beta1 * tensor.momentum + (1 - beta1) * tensor.grad
                 tensor.velocity = beta2 * tensor.velocity + (1 - beta2) * np.square(tensor.grad)
-                
+
                 # 计算偏差校正后的估计
-                m_hat = tensor.momentum / (1 - beta1 ** t)
-                v_hat = tensor.velocity / (1 - beta2 ** t)
+                m_hat = tensor.momentum / (1 - beta1 ** self.optim_step)
+                v_hat = tensor.velocity / (1 - beta2 ** self.optim_step)
 
                 # 更新参数
                 tensor.data -= learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
 
             if grad_zero:
                 tensor.grad = 0
-
-        return t  # 返回更新后的时间步
     
     def __repr__(self):
         """
