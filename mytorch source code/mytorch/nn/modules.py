@@ -129,7 +129,7 @@ class Linear(Module):
         返回:
         Tensor: 经过线性变换的输出。
         """
-        return x*self.w+self.b if self.bias else x*self.w
+        return x@self.w+self.b if self.bias else x@self.w
     
     def __repr__(self):
         """
