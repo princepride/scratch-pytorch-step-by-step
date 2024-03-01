@@ -330,6 +330,9 @@ class Tensor:
         return out
 
     def __add__(self, other):
+        return self.add(other)
+
+    def add(self, other):
         """
         实现Tensor对象的加法运算。
 
@@ -369,8 +372,11 @@ class Tensor:
         Tensor: 加法运算的结果。
         """
         return self.__add__(other)
-
+    
     def __sub__(self, other):
+        return self.sub(other)
+
+    def sub(self, other):
         """
         实现Tensor对象的减法运算。
 
@@ -424,8 +430,11 @@ class Tensor:
             self.grad -= 1.0 * neg_tensor.grad  
         neg_tensor._backward = _backward
         return neg_tensor
-
+    
     def __mul__(self, other):
+        return self.mul(other)
+
+    def mul(self, other):
         """
         实现Tensor对象的叉乘运算。
 
@@ -466,6 +475,9 @@ class Tensor:
         """
         return self.__mul__(other)
     
+    def __matmul__(self, other):
+        return self.matmul(other)
+    
     def matmul(self, other):
         """
         实现当前Tensor与另一个Tensor之间的矩阵乘法。
@@ -504,6 +516,9 @@ class Tensor:
         return out
     
     def __truediv__(self, other):
+        return self.div(other)
+
+    def div(self, other):
         """
         实现Tensor对象的除法运算。
 
@@ -531,8 +546,11 @@ class Tensor:
         out._backward = _backward
         return out
     
-    # 必须重写平方项，不能用乘以自身表示平方，否则求导会错
     def __pow__(self, power):
+        return self.pow(power)
+
+    # 必须重写平方项，不能用乘以自身表示平方，否则求导会错
+    def pow(self, power):
         """
         实现Tensor对象的幂运算。
 
