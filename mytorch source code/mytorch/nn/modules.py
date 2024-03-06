@@ -149,17 +149,24 @@ class MSELoss(Module):
 
     def forward(self, pred, target):
         """
-        计算预测和目标之间的均方误差。
-
+        计算预测值和目标值之间的均方误差损失。
+        
         参数:
-        pred (Tensor): 预测值。
-        target (Tensor): 真实目标值。
-
+        pred (Tensor): 模型的预测输出。
+        target (Tensor): 真实的目标值。
+        
         返回:
-        Tensor: 均方误差值。
+        Tensor: 均方误差损失的计算结果。
         """
-        loss = 0
-        for i in range(len(target)):
-            loss += (pred[i] - target[i]) ** 2
-        return loss/len(target)
+        if not isinstance(pred, Tensor) or not isinstance(target, Tensor):
+            raise TypeError("pred 和 target 都必须是 Tensor 类型")
+        
+        # 计算差异
+        diff = pred - target
+        # 计算差异的平方
+        squared_diff = diff.pow(2)
+        # 计算均方误差
+        loss = squared_diff.mean()
+        
+        return loss
 
