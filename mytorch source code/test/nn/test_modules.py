@@ -1,7 +1,8 @@
 import pytest
 from mytorch import Tensor
-from mytorch.nn.modules import Module, Linear
+from mytorch.nn.modules import Module, Linear, MSELoss
 import numpy as np
+import torch
 
 class SimpleModule(Module):
     def __init__(self):
@@ -81,3 +82,26 @@ def test_linear_repr():
     linear = Linear(in_features, out_features)
     expected_repr = f"Linear(in_features={in_features}, out_features={out_features}, bias=True)"
     assert repr(linear) == expected_repr
+
+def test_MSELoss():
+    # 生成随机数据
+    pred_np = np.random.rand(10, 5)
+    target_np = np.random.rand(10, 5)
+
+    # 使用 PyTorch 计算 MSE Loss
+    pred_torch = torch.tensor(pred_np, dtype=torch.float32, requires_grad=True)
+    target_torch = torch.tensor(target_np, dtype=torch.float32)
+    criterion_torch = torch.nn.MSELoss()
+    loss_torch = criterion_torch(pred_torch, target_torch)
+    
+    # 使用自定义 Tensor 类和 MSELoss 类计算 MSE Loss
+    pred_custom = Tensor(pred_np)
+    target_custom = Tensor(target_np)
+    criterion_custom = MSELoss()
+    loss_custom = criterion_custom(pred_custom, target_custom)
+    
+    # 将自定义方法计算的结果转换为 PyTorch Tensor，以便比较
+    loss_custom_torch = torch.tensor(loss_custom.data, dtype=torch.float32)
+    
+    # 比较结果
+    assert torch.isclose(loss_torch, loss_custom_torch, atol=1e-6)
