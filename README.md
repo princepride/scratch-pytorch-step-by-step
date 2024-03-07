@@ -1,8 +1,8 @@
 # scratch-pytorch-step-by-step
 
-本项目会一步步教你实现语法风格类似pytorch的深度学习框架，众所周知pytorch实际上是靠C语言实现的底层函数，再用python和底层函数绑定。考虑到太过于还原可能会增加学习门槛（主要本人不太会），本教程会用python的基础语法和numpy实现深度学习领域的一些基础算法，包括反向传播，随机梯度下降，Adam优化器，Dropout层等。实现的模型包括CNN, RNN, LSTM, ResNet, transformer等。
+这个项目旨在一步步教你实现一个语法风格类似于PyTorch的深度学习框架。虽然PyTorch的底层是用C语言实现的，但考虑到完全还原可能会增加学习门槛，本教程将使用Python的基础语法和NumPy来实现深度学习领域的一些基础算法，包括但不限于反向传播、随机梯度下降、Adam优化器、Dropout层等。本项目还会介绍如何实现包括CNN、RNN、LSTM、ResNet、Transformer等在内的模型。
 
-## Index
+## 目录
 
 | 章节 | 内容                                                                        | 完成度 |
 | ---- | --------------------------------------------------------------------------- | ------ |
@@ -23,11 +23,11 @@
 | 3.7  | 用mytorch从头到位实现transformer模型                                        | ⬜     |
 | 3.8  | 实现mamba模型                                                               | ⬜     |
 
-## Main Program
+## 主程序
 
 在 `mytorch source code`文件目录下
 
-## To do
+## 待办事项
 
 | To do list                | 完成度 |
 | ------------------------- | ------ |
@@ -35,3 +35,25 @@
 | 实现cuda版的反向传播      | ⬜     |
 | 实现cuda版Flash Attention | ⬜     |
 | 实现cuda版4bit，1bit量化  | ⬜     |
+
+## 如何贡献
+欢迎所有对深度学习感兴趣的人士贡献力量！无论是修复bug、添加新特性还是改进文档，您的帮助都是我前进的动力。
+
+1. Fork本仓库。
+2. 创建您的功能分支 (git checkout -b feature/AmazingFeature)。
+3. 提交您的更改 (git commit -m 'Add some AmazingFeature')。
+4. 将您的更改推送到GitHub (git push origin feature/AmazingFeature)。
+5. 创建一个新的Pull Request。
+
+## 创建问题
+遇到问题或有好的建议？请不犹豫，通过创建一个issue来让我知道。我会尽力解决问题，欢迎任何形式的反馈。
+
+## 社区参与
+- 如果你觉得这个项目对你有帮助，不妨给它一个Star✨！
+- 分享给更多的朋友，让更多的人了解和参与进来。
+
+## 许可证
+本项目根据Apache License 2.0许可证授权。
+
+## 致谢
+本项目的灵感来源于Andrej Karpathy的micrograd项目。我们对他在深度学习教育领域所做的贡献表示深深的感谢。
