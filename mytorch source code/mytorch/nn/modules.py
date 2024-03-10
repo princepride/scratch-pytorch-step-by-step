@@ -1,4 +1,5 @@
 import numpy as np
+import mytorch
 from ..tensor import Tensor
 class Module:
     def __init__(self):
@@ -165,7 +166,7 @@ class RNN(Module):
         self.output_layer = Linear(hidden_size, output_size, bias=bias)
 
     def initHidden(self):
-        return Tensor.zeros((1, self.hidden_size))
+        return mytorch.zeros((1, self.hidden_size))
 
     def forward(self, input):
         hidden_states = [self.initHidden() for _ in range(self.num_layers)]
@@ -175,22 +176,144 @@ class RNN(Module):
             if not isinstance(layer_input, Tensor):
                 layer_input = Tensor(layer_input, trainable=False)
             for i in range(self.num_layers):
-                combined = Tensor.cat((layer_input, hidden_states[i]), 1)
+                combined = mytorch.cat((layer_input, hidden_states[i]), 1)
                 hidden_state = self.layers[i](combined)
                 if self.nonlinearity == 'tanh':
-                    hidden_state = Tensor.tanh(hidden_state)
+                    hidden_state = mytorch.tanh(hidden_state)
                 elif self.nonlinearity == 'relu':
-                    hidden_state = F.relu(hidden_state)
+                    hidden_state = mytorch.relu(hidden_state)
                 layer_input = hidden_state
                 hidden_states[i] = hidden_state
             output = self.output_layer(hidden_state)
             outputs.append(output)
 
-        outputs = Tensor.cat(outputs, 0)
+        outputs = mytorch.cat(outputs, 0)
         return outputs, hidden_states
 
     def __repr__(self):
         return f"RNN(input_size={self.input_size}, hidden_size={self.hidden_size}, num_layers={self.num_layers})"
+
+class LSTMCell(Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+
+        # 输入门
+        self.W_xi = Linear(input_size, hidden_size)
+        self.W_hi = Linear(hidden_size, hidden_size, bias=False)
+
+        # 遗忘门
+        self.W_xf = Linear(input_size, hidden_size)
+        self.W_hf = Linear(hidden_size, hidden_size, bias=False)
+
+        # 输出门
+        self.W_xo = Linear(input_size, hidden_size)
+        self.W_ho = Linear(hidden_size, hidden_size, bias=False)
+
+        # 候选记忆细胞
+        self.W_xc = Linear(input_size, hidden_size)
+        self.W_hc = Linear(hidden_size, hidden_size, bias=False)
+
+        # 输出门参数
+        self.W_hq = Linear(hidden_size, output_size)
+
+    def forward(self, x, init_states):
+        h_prev, c_prev = init_states
+        I = mytorch.sigmoid(self.W_xi(x) + self.W_hi(h_prev))
+        F = mytorch.sigmoid(self.W_xf(x) + self.W_hf(h_prev))
+        O = mytorch.sigmoid(self.W_xo(x) + self.W_ho(h_prev))
+        C_tilda = mytorch.tanh(self.W_xc(x) + self.W_hc(h_prev))
+        C = F * c_prev + I * C_tilda
+        H = O * C.tanh()
+        Y = self.W_hq(H)
+        return Y, H, C
+    
+    def __repr__(self):
+        return f"LSTMCell(input_size={self.input_size}, hidden_size={self.hidden_size}, output_size={self.output_size})"
+    
+class LSTM(Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.lstm_cell = LSTMCell(input_size, hidden_size, output_size)
+
+    def forward(self, inputs, init_states=None):
+        # 初始化状态
+        batch_size = inputs.size(0)
+        seq_len = inputs.size(1)
+        if init_states is None:
+            h_prev = mytorch.zeros(batch_size, self.lstm_cell.hidden_size)
+            c_prev = mytorch.zeros(batch_size, self.lstm_cell.hidden_size)
+        else:
+            h_prev, c_prev = init_states
+
+        outputs = []
+        h_states = []
+        c_states = []
+
+        for t in range(seq_len):
+            x = inputs[:, t, :]
+            y, h_prev, c_prev = self.lstm_cell(x, (h_prev, c_prev))
+            outputs.append(y.unsqueeze(1))
+            h_states.append(h_prev.unsqueeze(1))
+            c_states.append(c_prev.unsqueeze(1))
+
+        outputs = mytorch.cat(outputs, dim=1)
+        h_states = mytorch.cat(h_states, dim=1)
+        c_states = mytorch.cat(c_states, dim=1)
+
+        return outputs, (h_states, c_states)
+    
+    def __repr__(self):
+        return f"LSTM(input_size={self.input_size}, hidden_size={self.hidden_size}, output_size={self.output_size})"
+    
+class ResidualBlock(Module):
+    def __init__(self, input_features, output_features, bias = True):
+        super().__init__()
+        self.input_features = input_features
+        self.output_features = output_features
+        self.bias = bias
+        self.fc1 = Linear(input_features, output_features, bias=bias)
+        self.fc2 = Linear(output_features, output_features, bias=bias)
+
+    def forward(self, x: Tensor):
+        out = self.fc1(x)
+        out = mytorch.relu(out)
+        out = self.fc2(out)
+
+        if x.size() != out.size():
+            raise ValueError("输入和输出的特征维度不匹配")
+        out += x
+        out = mytorch.relu(out)
+        return out
+    
+    def __repr__(self):
+        return f"ResidualBlock(input_features={self.input_features}, output_features={self.output_features}, bias={self.bias})"
+    
+class ResidualNet(Module):
+    def __init__(self, input_features, hidden_features, output_features, num_blocks):
+        super().__init__()
+        self.input_features = input_features
+        self.hidden_features = hidden_features
+        self.output_features = output_features
+        self.num_blocks = num_blocks
+        self.initial_fc = Linear(input_features, hidden_features)
+        self.blocks = [ResidualBlock(hidden_features, hidden_features) for _ in range(num_blocks)]
+        self.final_fc = Linear(hidden_features, output_features)
+
+    def forward(self, x: Tensor):
+        out = self.initial_fc(x)
+        for block in self.blocks:
+            out = block(out)
+        out = self.final_fc(out)
+        return out
+    
+    def __repr__(self):
+        return f"ResidualNet(input_features={self.input_features}, hidden_features={self.hidden_features}, output_features={self.output_features}, num_blocks={self.num_blocks})"
     
 class MSELoss(Module):
     def __init__(self):
