@@ -11,8 +11,11 @@ def tanh(tensor:Tensor) -> Tensor:
 def sigmoid(tensor:Tensor) -> Tensor:
     return tensor.sigmoid()
 
-def from_numpy(ndarray: np.ndarray) -> Tensor:
-    return Tensor.from_numpy(ndarray)
+def relu(tensor:Tensor) -> Tensor:
+    return tensor.relu()
 
-def zeros(shape):
-    return Tensor.from_numpy(np.zeros(shape, dtype=np.float32))
+def from_numpy(ndarray: np.ndarray, trainable=True) -> Tensor:
+    return Tensor.from_numpy(ndarray, trainable=trainable)
+
+def zeros(shape, trainable=True):
+    return Tensor.from_numpy(np.zeros(shape, dtype=np.float32), trainable=trainable)
