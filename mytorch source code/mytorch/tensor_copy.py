@@ -27,15 +27,6 @@ class Tensor:
         self.optim_step = 0  # 添加优化步骤计数器
 
     def __eq__(self, other):
-        """
-        比较当前Tensor和另一个Tensor的数据和训练标志。
-        
-        参数:
-        other (Tensor): 要比较的另一个Tensor对象。
-        
-        返回:
-        bool: 如果数据和训练标志相同，则为True；否则为False。
-        """
         if not isinstance(other, Tensor):
             return NotImplemented
         return (np.array_equal(self.data, other.data) and 
