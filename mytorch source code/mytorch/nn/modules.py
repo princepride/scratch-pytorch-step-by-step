@@ -140,6 +140,58 @@ class Linear(Module):
         """
         return f"Linear(in_features={self.in_features}, out_features={self.out_features}, bias={self.bias})"
     
+class RNN(Module):
+    def __init__(self, input_size, hidden_size, output_size, num_layers = 1, nonlinearity='tanh', bias=True):
+        """
+            初始化简单RNN模型。
+            参数:
+            - input_size: 每个输入项的特征数量。
+            - hidden_size: 隐藏层的特征数量。
+            - num_layers: RNN的层数，默认为1。
+            - nonlinearity: 用于隐藏层的非线性激活函数，默认为'tanh'，可以设置为'relu'。
+            - bias: 是否在RNN层中添加偏置项，默认为True。
+        """
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.num_layers = num_layers
+        self.nonlinearity = nonlinearity
+        self.bias = bias
+        self.layers = []
+        for i in range(num_layers):
+            layer_input_size = input_size if i == 0 else hidden_size
+            self.layers.append(Linear(layer_input_size + hidden_size, hidden_size, bias=bias))
+        self.output_layer = Linear(hidden_size, output_size, bias=bias)
+
+    def initHidden(self):
+        return Tensor.zeros((1, self.hidden_size))
+
+    def forward(self, input):
+        hidden_states = [self.initHidden() for _ in range(self.num_layers)]
+        outputs = []
+        for t in range(len(input)):
+            layer_input = np.expand_dims(input[t], axis=0)
+            if not isinstance(layer_input, Tensor):
+                layer_input = Tensor(layer_input, trainable=False)
+            for i in range(self.num_layers):
+                combined = Tensor.cat((layer_input, hidden_states[i]), 1)
+                hidden_state = self.layers[i](combined)
+                if self.nonlinearity == 'tanh':
+                    hidden_state = Tensor.tanh(hidden_state)
+                elif self.nonlinearity == 'relu':
+                    hidden_state = F.relu(hidden_state)
+                layer_input = hidden_state
+                hidden_states[i] = hidden_state
+            output = self.output_layer(hidden_state)
+            outputs.append(output)
+
+        outputs = Tensor.cat(outputs, 0)
+        return outputs, hidden_states
+
+    def __repr__(self):
+        return f"RNN(input_size={self.input_size}, hidden_size={self.hidden_size}, num_layers={self.num_layers})"
+    
 class MSELoss(Module):
     def __init__(self):
         """
