@@ -622,10 +622,6 @@ class Tensor:
 
         return out
     
-    @staticmethod
-    def tanh(tensor):
-        return tensor.tanh()
-    
     def sigmoid(self):
         """
         应用Sigmoid激活函数。
@@ -642,10 +638,6 @@ class Tensor:
         out._backward = _backward
 
         return out
-    
-    @staticmethod
-    def sigmoid(tensor):
-        return tensor.sigmoid()
 
     def relu(self):
         """
@@ -661,10 +653,6 @@ class Tensor:
             self.grad += (x > 0) * out.grad  # Gradient is 1 for x > 0, otherwise 0
         out._backward = _backward
         return out
-    
-    @staticmethod
-    def relu(tensor):
-        return tensor.relu()
     
     def mean(self, dim=None, keepdims=False):
         """

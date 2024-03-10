@@ -57,6 +57,10 @@ def test_from_numpy():
     assert Tensor.from_numpy(np.array([1,2,3])) != Tensor([1,2,3], trainable=False)
     assert Tensor.from_numpy(np.array([1,2,3]), trainable=False) != Tensor([1,2,3])
 
+def test_zeros():
+    assert Tensor.zeros((1, 5)) == Tensor.from_numpy([[0,0,0,0,0]])
+    assert Tensor.zeros((3, ), False) == Tensor.from_numpy([0,0,0], False)
+
 def test_size():
     a = Tensor([[[1],[2]],[[3],[3]],[[4],[5]]])
     assert a.size() == (3,2,1)
