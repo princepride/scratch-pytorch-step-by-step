@@ -27,7 +27,7 @@ def matmul(A, B):
 
     # 启动kernel
     matmul_kernel[blockspergrid, threadsperblock](A_global_mem, B_global_mem, C_global_mem)
-
+    C_global_mem.copy_to_host()
     # 将结果从GPU内存复制回主机内存
     return C_global_mem
 
@@ -71,6 +71,7 @@ def matmul_shared_memory(A, B):
 
     # 启动kernel
     matmul_kernel_shared_memory[blockspergrid, threadsperblock](A_global_mem, B_global_mem, C_global_mem)
+    C_global_mem.copy_to_host()
     return C_global_mem
 
 def matmul_shared_memory_multistream(A, B):
@@ -109,3 +110,20 @@ def matmul_shared_memory_multistream(A, B):
         C[start_row:end_row, :] = C_part
 
     return C
+
+@cuda.jit
+def matmul_kernel_shared_memory(A, B, C):
+    # 定义共享内存
+    TILE_WIDTH = THREAD_SIZE
+    shared_A = cuda.shared.array((TILE_WIDTH, TILE_WIDTH), dtype=np.float32)
+    shared_B = cuda.shared.array((TILE_WIDTH, TILE_WIDTH), dtype=np.float32)
+
+    x, y = cuda.grid(2)
+    tx, ty = cuda.threadIdx.x, cuda.threadIdx.y
+
+    if x >= C.shape[0] or y >= C.shape[1]:
+        return
+
+    C[x, y] = shared_A[tx, ty] + shared_B[tx, ty]
+
+    cuda.syncthreads()
