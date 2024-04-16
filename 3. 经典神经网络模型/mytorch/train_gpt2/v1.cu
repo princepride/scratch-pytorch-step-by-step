@@ -2,6 +2,26 @@
 GPT-2 Transformer Neural Net trained in raw CUDA
 */
 
+// __device__ 和 __global__ 都是 CUDA 中的函数修饰符,但它们有一些重要的区别:
+// 调用方式:
+// __global__ 函数只能从主机(CPU)端调用,使用 <<<grid_size, block_size>>>语法启动内核。
+// __device__ 函数只能从设备(GPU)端调用,即只能在其他 __device__ 函数或 __global__ 函数中调用。
+// 执行位置:
+// __global__ 函数在设备(GPU)上执行,由多个线程并行执行。
+// __device__ 函数也在设备(GPU)上执行,但是在调用它的线程的上下文中串行执行。
+// 内存访问:
+// __global__ 函数可以访问设备内存和主机内存(通过指针传递)。
+// __device__ 函数只能访问设备内存。
+// 返回值:
+// __global__ 函数不能有返回值,但可以将结果写入通过指针传递的输出参数中。
+// __device__ 函数可以有返回值,就像普通的 C++ 函数一样。
+// 调用开销:
+// 调用 __global__ 函数需要启动内核,有一定的开销。
+// 调用 __device__ 函数的开销很小,类似于普通函数调用。
+// 使用场景:
+// __global__ 函数用于定义并行执行的内核,是 CUDA 编程的基础。
+// __device__ 函数用于定义在设备上执行的辅助函数,通常用于封装常用的操作或计算,提高代码的可读性和重用性。
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,6 +42,8 @@ void cudaCheck(cudaError_t error, const char *file, int line) {
     exit(EXIT_FAILURE);
   }
 };
+// __FILE__: 表示当前源文件的名称,是一个字符串常量。这个宏会在编译时被替换为当前源文件的名称,包括文件的完整路径。
+// __LINE__: 表示当前行号,是一个整数常量。这个宏会在编译时被替换为当前代码所在的行号。
 #define cudaCheck(err) (cudaCheck(err, __FILE__, __LINE__))
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
 
@@ -29,6 +51,8 @@ void cudaCheck(cudaError_t error, const char *file, int line) {
 // all the kernels
 
 // warp-level reduction for finding the maximum value
+// 计算warp中的最大值，warp是一组32个线程
+// __shfl_down_sync 中val是操作数索引，offset是线程标号的偏移量，返回的是偏移后所指的线程值
 __device__ float warpReduceMax(float val) {
     for (int offset = 16; offset > 0; offset /= 2) {
         val = fmaxf(val, __shfl_down_sync(0xFFFFFFFF, val, offset));
@@ -37,6 +61,7 @@ __device__ float warpReduceMax(float val) {
 }
 
 // warp-level reduction for summing values
+// 计算warp中的值之和
 __device__ float warpReduceSum(float val) {
     for (int offset = 16; offset > 0; offset /= 2) {
         val += __shfl_down_sync(0xFFFFFFFF, val, offset);
@@ -44,6 +69,15 @@ __device__ float warpReduceSum(float val) {
     return val;
 }
 
+// 函数参数:
+// 这段代码是做token的位置编码的前向传播
+// out: 输出张量,shape为 (B, T, C)
+// inp: 输入索引,shape为 (B, T)
+// wte: token embedding矩阵,shape为 (V, C),其中V是词汇表大小
+// wpe: position embedding矩阵,shape为 (T, C)
+// B: batch size
+// T: sequence length
+// C: embedding dimension
 __global__ void encoder_forward_kernel2(float* out,
                                int* inp, float* wte, float* wpe,
                                int B, int T, int C) {
@@ -51,17 +85,17 @@ __global__ void encoder_forward_kernel2(float* out,
     int N = B * T * C;
 
     if (idx < N) {
-        int bt = idx / C;
-        int b = bt / T;
-        int t = bt % T;
-        int c = idx % C;
+        int bt = idx / C; // 将全局索引分解为batch和token位置的组合索引
+        int b = bt / T; // 从 bt 计算batch索引
+        int t = bt % T; // 从 bt 计算token位置索引
+        int c = idx % C; // 计算embedding维度索引
 
-        int ix = inp[b * T + t];
+        int ix = inp[b * T + t]; // 根据输入索引 inp,获取对应token的索引 ix
 
-        float* out_btc = out + b * T * C + t * C + c;
-        float* wte_ix = wte + ix * C + c;
-        float* wpe_tc = wpe + t * C + c;
-        *out_btc = *wte_ix + *wpe_tc;
+        float* out_btc = out + b * T * C + t * C + c; // 输出张量中位置 (b, t, c) 的指针
+        float* wte_ix = wte + ix * C + c; // token embedding矩阵中第 ix 行,第 c 列的元素的指针
+        float* wpe_tc = wpe + t * C + c; // position embedding矩阵中位置 (t, c) 的指针
+        *out_btc = *wte_ix + *wpe_tc; // 将token embedding和position embedding相加,并将结果存储到输出张量的对应位置
     }
 }
 
